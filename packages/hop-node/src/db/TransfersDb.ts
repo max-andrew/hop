@@ -1,7 +1,8 @@
 import BaseDb, { KeyFilter } from './BaseDb'
 import chainIdToSlug from 'src/utils/chainIdToSlug'
 import { BigNumber } from 'ethers'
-import { OneWeekMs, TxError, TxRetryDelayMs } from 'src/constants'
+import { Chain, OneWeekMs, RelayableChains, TxError } from 'src/constants'
+import { TxRetryDelayMs, nitroStartTimestamp } from 'src/config'
 import { normalizeDbItem } from './utils'
 
 interface BaseTransfer {
@@ -14,16 +15,27 @@ interface BaseTransfer {
   destinationChainId?: number
   destinationChainSlug?: string
   isBondable?: boolean
+  isRelayable?: boolean
+  isRelayed?: boolean
   isNotFound?: boolean
   isTransferSpent?: boolean
   recipient?: string
+  relayAttemptedAt?: number
+  relayBackoffIndex?: number
+  relayTxError?: TxError
+  relayer?: string
+  relayerFee?: BigNumber
   sourceChainId?: number
   sourceChainSlug?: string
+  transferFromL1Complete?: boolean
+  transferFromL1CompleteTxHash?: string
   transferNonce?: string
+  transferRelayed?: boolean
   transferRootHash?: string
   transferRootId?: string
   transferSentBlockNumber?: number
   transferSentIndex?: number
+  transferSentLogIndex?: number
   transferSentTimestamp?: number
   transferSentTxHash?: string
   transferSpentTxHash?: string
@@ -34,6 +46,7 @@ interface BaseTransfer {
   withdrawalBonded?: boolean
   withdrawalBondedTxHash?: string
   withdrawalBonder?: string
+  sender?: string
 }
 
 export interface Transfer extends BaseTransfer {
@@ -69,6 +82,19 @@ export type UnbondedSentTransfer = {
   bonderFee: BigNumber
   transferNonce: string
   deadline: BigNumber
+}
+
+export type UnrelayedSentTransfer = {
+  transferId: string
+  sourceChainId: number
+  destinationChainId: number
+  recipient: string
+  amount: BigNumber
+  relayer: string
+  relayerFee: BigNumber
+  transferSentTxHash: string
+  transferSentTimestamp: number
+  transferSentLogIndex: number
 }
 
 export type UncommittedTransfer = {
@@ -171,7 +197,8 @@ class SubDbIncompletes extends BaseDb {
       !item.transferSentBlockNumber ||
       (item.transferSentBlockNumber && !item.transferSentTimestamp) ||
       (item.withdrawalBondedTxHash && !item.withdrawalBonder) ||
-      (item.withdrawalBondSettledTxHash && !item.withdrawalBondSettled)
+      (item.withdrawalBondSettledTxHash && !item.withdrawalBondSettled) ||
+      (!item.sender)
       /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
     )
   }
@@ -219,6 +246,8 @@ class SubDbRootHashes extends BaseDb {
   }
 }
 
+const arbitrumChainId = 42161
+
 // structure:
 // key: `<transferId>`
 // value: `{ ...Transfer }`
@@ -232,30 +261,6 @@ class TransfersDb extends BaseDb {
     this.subDbTimestamps = new SubDbTimestamps(prefix, _namespace)
     this.subDbIncompletes = new SubDbIncompletes(prefix, _namespace)
     this.subDbRootHashes = new SubDbRootHashes(prefix, _namespace)
-  }
-
-  async migration () {
-    this.logger.debug('TransfersDb migration started')
-    const entries = await this.getKeyValues()
-    this.logger.debug(`TransfersDb migration: ${entries.length} entries`)
-    const promises: Array<Promise<any>> = []
-    for (const { key, value } of entries) {
-      let shouldUpdate = false
-      if (value?.sourceChainSlug === 'xdai') {
-        shouldUpdate = true
-        value.sourceChainSlug = 'gnosis'
-      }
-      if (value?.destinationChainSlug === 'xdai') {
-        shouldUpdate = true
-        value.destinationChainSlug = 'gnosis'
-      }
-      if (shouldUpdate) {
-        promises.push(this._update(key, value))
-      }
-    }
-
-    await Promise.all(promises)
-    this.logger.debug('TransfersDb migration complete')
   }
 
   private isRouteOk (filter: GetItemsFilter = {}, item: Transfer) {
@@ -309,6 +314,20 @@ class TransfersDb extends BaseDb {
   // sort explainer: https://stackoverflow.com/a/9175783/1439168
   private readonly sortItems = (a: any, b: any) => {
     /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
+    if (a.transferSentBlockNumber! > b.transferSentBlockNumber!) return 1
+    if (a.transferSentBlockNumber! < b.transferSentBlockNumber!) return -1
+    if (a.transferSentIndex! > b.transferSentIndex!) return 1
+    if (a.transferSentIndex! < b.transferSentIndex!) return -1
+    /* eslint-enable @typescript-eslint/no-unnecessary-type-assertion */
+    return 0
+  }
+
+  private readonly prioritizeSortItems = (a: any, b: any) => {
+    /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
+    // place anything that is to Arbitrum at bottom of list
+    if (a.destinationChainId === arbitrumChainId) return 1
+    if (b.destinationChainId === arbitrumChainId) return -1
+
     if (a.transferSentBlockNumber! > b.transferSentBlockNumber!) return 1
     if (a.transferSentBlockNumber! < b.transferSentBlockNumber!) return -1
     if (a.transferSentIndex! > b.transferSentIndex!) return 1
@@ -399,6 +418,7 @@ class TransfersDb extends BaseDb {
     filter: GetItemsFilter = {}
   ): Promise<UnbondedSentTransfer[]> {
     const transfers: Transfer[] = await this.getTransfersFromWeek()
+    const isEthToken = this.prefix?.startsWith('ETH')
     const filtered = transfers.filter(item => {
       if (!item?.transferId) {
         return false
@@ -439,7 +459,85 @@ class TransfersDb extends BaseDb {
       )
     })
 
-    return filtered as UnbondedSentTransfer[]
+    const sorted = isEthToken ? filtered.sort(this.prioritizeSortItems) : filtered
+
+    return sorted as UnbondedSentTransfer[]
+  }
+
+  async getUnrelayedSentTransfers (
+    filter: GetItemsFilter = {}
+  ): Promise<UnrelayedSentTransfer[]> {
+    // TODO: Remove this post-nitro
+    if (!nitroStartTimestamp) {
+      return []
+    }
+
+    const transfers: Transfer[] = await this.getTransfersFromWeek()
+    const filtered = transfers.filter(item => {
+      if (!item?.transferId) {
+        return false
+      }
+
+      if (!this.isRouteOk(filter, item)) {
+        return false
+      }
+
+      if (item.isNotFound) {
+        return false
+      }
+
+      if (item?.sourceChainSlug !== Chain.Ethereum) {
+        return false
+      }
+
+      if (!item?.destinationChainSlug) {
+        return false
+      }
+
+      if (!RelayableChains.includes(item.destinationChainSlug)) {
+        return false
+      }
+
+      if (!item.transferSentTimestamp) {
+        return false
+      }
+
+      // TODO: Remove this one week post-nitro
+      if (item.transferSentTimestamp && item.transferSentTimestamp < nitroStartTimestamp) {
+        return false
+      }
+
+      let timestampOk = true
+      if (item.relayAttemptedAt) {
+        if (TxError.RelayerFeeTooLow === item.relayTxError) {
+          const delay = TxRetryDelayMs + ((1 << item.relayBackoffIndex!) * 60 * 1000) // eslint-disable-line
+          // TODO: use `sentTransferTimestamp` once it's added to db
+
+          // don't attempt to relay after a week
+          if (delay > OneWeekMs) {
+            return false
+          }
+          timestampOk = item.relayAttemptedAt + delay < Date.now()
+        } else {
+          timestampOk = item.relayAttemptedAt + TxRetryDelayMs < Date.now()
+        }
+      }
+
+      return (
+        item.transferId &&
+        item.transferSentTimestamp &&
+        !item.transferRelayed &&
+        item.transferSentTxHash &&
+        item.isRelayable &&
+        !item.isRelayed &&
+        !item.transferFromL1Complete &&
+        item.transferSentLogIndex &&
+        item.transferSentTimestamp &&
+        timestampOk
+      )
+    })
+
+    return filtered as UnrelayedSentTransfer[]
   }
 
   async getIncompleteItems (

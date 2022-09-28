@@ -13,12 +13,17 @@ import { useQuery } from 'react-query'
 
 const Stake = () => {
   const { bridges, sdk, networks } = useApp()
-  const availableNetworks = networks.filter(n =>
-    Object.keys(stakingRewardsContracts).includes(n.slug as ChainSlug)
-  )
+  const availableNetworks = networks.filter((n: any) => {
+    return Object.keys(stakingRewardsContracts).includes(n.slug as ChainSlug)
+  }).sort((a: any, b: any) => {
+    if (a.slug < b.slug) return -1
+    else if (a.slug > b.slug) return 1
+    return 0
+  })
   const { selectedNetwork, selectBothNetworks } = useSelectedNetwork({
     l2Only: true,
     availableNetworks,
+    preferredDefault: ChainSlug.Gnosis
   })
 
   const allBridges = useMemo(() => {
@@ -35,7 +40,7 @@ const Stake = () => {
     return {
       eth: allBridges.eth.getSaddleLpToken(selectedNetwork.slug),
       matic: allBridges.matic.getSaddleLpToken(ChainSlug.Polygon),
-      dai: allBridges.dai.getSaddleLpToken(ChainSlug.Gnosis),
+      dai: allBridges.dai.getSaddleLpToken(selectedNetwork.slug),
       usdc: allBridges.usdc.getSaddleLpToken(selectedNetwork.slug),
       usdt: allBridges.usdt.getSaddleLpToken(selectedNetwork.slug),
     }
@@ -116,6 +121,15 @@ const Stake = () => {
               rewardsToken={rewardsToken}
               stakingRewards={stakingRewards?.matic}
               key={stakingTokens.matic?.symbol}
+              rewardTokenUsdPrice={rewardTokenUsdPrice}
+            />
+            <StakeWidget
+              network={selectedNetwork}
+              bridge={allBridges.dai}
+              stakingToken={stakingTokens.dai}
+              rewardsToken={rewardsToken}
+              stakingRewards={stakingRewards?.dai}
+              key={stakingTokens.dai?.symbol}
               rewardTokenUsdPrice={rewardTokenUsdPrice}
             />
             <StakeWidget

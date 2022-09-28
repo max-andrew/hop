@@ -105,6 +105,15 @@ class Token extends Base {
     return tokenContract.allowance(address, spender)
   }
 
+  // TODO: docs
+  public async needsApproval (spender: string, amount: TAmount, address?: string) {
+    if (this.isNativeToken) {
+      return false
+    }
+    const allowance = await this.allowance(spender, address)
+    return allowance.lt(amount)
+  }
+
   /**
    * @desc Returns token balance of signer.
    * @param {String} spender - spender address.
@@ -176,8 +185,10 @@ class Token extends Base {
     spender: string,
     amount: TAmount = ethers.constants.MaxUint256
   ) {
-    const populatedTx = await this.populateApproveTx(spender, amount)
-    const allowance = await this.allowance(spender)
+    const [populatedTx, allowance] = await Promise.all([
+      this.populateApproveTx(spender, amount),
+      this.allowance(spender)
+    ])
     if (allowance.lt(BigNumber.from(amount))) {
       return this.sendTransaction(populatedTx, this.chain)
     }
@@ -199,7 +210,7 @@ class Token extends Base {
    * @param {Object} chain - Chain model.
    * @returns {Object} Ethers contract instance.
    */
-  public async getErc20 () {
+  public async getErc20 (): Promise<any> {
     if (this.isNativeToken) {
       return this.getWethContract()
     }
@@ -250,7 +261,7 @@ class Token extends Base {
     return this.chain.provider.getBalance(address)
   }
 
-  async getWethContract () {
+  async getWethContract (): Promise<any> {
     const provider = await this.getSignerOrProvider(this.chain)
     return WETH9__factory.connect(this.address, provider)
   }

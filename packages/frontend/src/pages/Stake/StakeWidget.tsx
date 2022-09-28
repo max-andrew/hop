@@ -1,8 +1,8 @@
 import React, { FC, useState, useMemo } from 'react'
 import { BigNumber } from 'ethers'
-import { formatUnits } from 'ethers/lib/utils'
+import { parseUnits } from 'ethers/lib/utils'
 import { makeStyles } from '@material-ui/core/styles'
-import { HopBridge, Token } from '@hop-protocol/sdk'
+import { Chain, HopBridge, Token } from '@hop-protocol/sdk'
 import { useApp } from 'src/contexts/AppContext'
 import { useWeb3Context } from 'src/contexts/Web3Context'
 import AmountSelectorCard from 'src/components/AmountSelectorCard'
@@ -89,27 +89,35 @@ const StakeWidget: FC<Props> = props => {
       address?.toString(),
     ],
     async (): Promise<any> => {
-      if (!(bridge && network && stakingToken && stakingRewards && address)) {
+      if (!(bridge && network && stakingToken && stakingRewards)) {
         return
       }
 
       try {
         const token = await bridge.getL1Token()
         const tokenUsdPrice = await bridge.priceFeed.getPriceByTokenSymbol(token.symbol)
-        const earned = await stakingRewards?.earned(address.toString())
-        const allowance = await stakingToken?.allowance(stakingRewards.address, address.toString())
+        if (address) {
+          const earned = await stakingRewards?.earned(address.toString())
+          const allowance = await stakingToken?.allowance(stakingRewards.address, address.toString())
+
+          return {
+            tokenUsdPrice,
+            earned,
+            allowance,
+          }
+        }
 
         return {
           tokenUsdPrice,
-          earned,
-          allowance,
+          earned: BigNumber.from(0),
+          allowance: BigNumber.from(0)
         }
       } catch (error) {
         console.log(`error:`, error)
       }
     },
     {
-      enabled: !!bridge && !!network && !!address && !!stakingToken && !!stakingRewards,
+      enabled: !!bridge && !!network && !!stakingToken && !!stakingRewards,
       refetchInterval: 10e3,
     }
   )
@@ -120,7 +128,7 @@ const StakeWidget: FC<Props> = props => {
     if (!(address && data?.allowance && parsedAmount)) {
       return
     }
-    return data.allowance.lt(parsedAmount)
+    return data?.allowance.lt(parsedAmount)
   }, [data?.allowance.toString(), parsedAmount])
 
   const isStakeEnabled = useMemo(() => {
@@ -143,7 +151,8 @@ const StakeWidget: FC<Props> = props => {
     try {
       if (!stakingRewards) return
       const timestamp = await stakingRewards.periodFinish()
-      return isRewardsExpired(timestamp)
+      const isExpired = isRewardsExpired(timestamp)
+      return isExpired
     } catch (err: any) {
       logger.error(formatError(err))
     }
@@ -165,7 +174,7 @@ const StakeWidget: FC<Props> = props => {
   }, [stakingRewards, rewardsExpired])
 
   const userRewardsPerDay = useMemo(() => {
-    if (!(totalRewardsPerDay && stakeBalance?.gt(0) && totalStaked)) {
+    if (!(totalRewardsPerDay && stakeBalance?.gt(0) && totalStaked?.gt(0))) {
       return
     }
     return totalRewardsPerDay.mul(stakeBalance).div(totalStaked)
@@ -178,8 +187,35 @@ const StakeWidget: FC<Props> = props => {
       ) {
         return
       }
+      const canonToken = bridge.getCanonicalToken(network.slug)
 
-      const canonToken = await bridge.getCanonicalToken(network.slug)
+      try {
+        const url = 'https://assets.hop.exchange/v1-pool-stats.json'
+        const res = await fetch(url)
+        const json = await res.json()
+        let symbol = canonToken.symbol
+        if (symbol === 'WETH') {
+          symbol = 'ETH'
+        }
+        if (symbol === 'XDAI') {
+          symbol = 'DAI'
+        }
+        console.log('apr data', json)
+        const oneHourMs = 60 * 60 * 1000
+        const isRecent = json.timestamp > Date.now() - oneHourMs
+        if (isRecent) {
+          const apr = json.data[symbol][network.slug].stakingApr
+          if (apr != null) {
+            const aprBn = parseUnits(apr.toString(), 18)
+            if (aprBn.lt(0)) {
+              return BigNumber.from(0)
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err)
+      }
+
       const amm = bridge.getAmm(network.slug)
       const stakedTotal = await amm.calculateTotalAmountForLpToken(totalStaked)
       if (stakedTotal.lte(0)) {
@@ -208,6 +244,7 @@ const StakeWidget: FC<Props> = props => {
   const stakedPosition = useAsyncMemo(async () => {
     if (
       !(
+        address &&
         bridge &&
         data?.earned &&
         data?.tokenUsdPrice &&
@@ -236,6 +273,7 @@ const StakeWidget: FC<Props> = props => {
       console.log(`error:`, error)
     }
   }, [
+    address,
     bridge?.network,
     network.slug,
     stakeBalance,
@@ -257,7 +295,6 @@ const StakeWidget: FC<Props> = props => {
     if (!isNetworkConnected || !parsedAmount) return
 
     const tx = await approve(parsedAmount, stakingToken, stakingRewards?.address)
-
     await tx?.wait()
   }
 
@@ -289,8 +326,10 @@ const StakeWidget: FC<Props> = props => {
           token: stakingToken,
         },
         onConfirm: async () => {
+          const chain = Chain.fromSlug(network.slug)
+          const overrides = await stakingToken?.txOverrides(chain)
           const signer = await sdk.getSignerOrProvider(network.slug)
-          return stakingRewards.connect(signer).stake(parsedAmount)
+          return stakingRewards.connect(signer).stake(parsedAmount, overrides)
         },
       })
 
@@ -325,8 +364,10 @@ const StakeWidget: FC<Props> = props => {
       const isNetworkConnected = await checkConnectedNetworkId(networkId)
       if (!isNetworkConnected) return
 
+      const chain = Chain.fromSlug(network.slug)
+      const overrides = await stakingToken?.txOverrides(chain)
       const signer = await sdk.getSignerOrProvider(network.slug)
-      await stakingRewards.connect(signer).getReward()
+      await stakingRewards.connect(signer).getReward(overrides)
     } catch (err: any) {
       console.error(err)
     }
@@ -349,18 +390,16 @@ const StakeWidget: FC<Props> = props => {
         kind: 'withdrawStake',
         inputProps: {
           token: stakingToken,
-          amount: Number(formatUnits(stakeBalance, stakingToken?.decimals)),
+          maxBalance: stakeBalance,
         },
-        onConfirm: async (amountPercent: number) => {
-          if (!amountPercent) return
-
-          if (amountPercent === 100) {
+        onConfirm: async (withdrawAmount: BigNumber) => {
+          if (withdrawAmount.eq(stakeBalance)) {
             return _stakingRewards.exit()
           }
 
-          const withdrawAmount = stakeBalance.mul(amountPercent).div(100)
-
-          return _stakingRewards.withdraw(withdrawAmount)
+          const chain = Chain.fromSlug(network.slug)
+          const overrides = await stakingToken?.txOverrides(chain)
+          return _stakingRewards.withdraw(withdrawAmount, overrides)
         },
       })
 

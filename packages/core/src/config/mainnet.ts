@@ -10,18 +10,18 @@ export const config : Config = {
       arbitrum: 14
     },
     USDT: {
-      ethereum: 23,
-      polygon: 23,
-      gnosis: 25,
-      optimism: 23,
-      arbitrum: 23
+      ethereum: 26,
+      polygon: 26,
+      gnosis: 30,
+      optimism: 26,
+      arbitrum: 26
     },
     DAI: {
-      ethereum: 13,
-      polygon: 13,
-      gnosis: 25,
-      optimism: 13,
-      arbitrum: 13
+      ethereum: 26,
+      polygon: 26,
+      gnosis: 30,
+      optimism: 26,
+      arbitrum: 26
     },
     MATIC: {
       ethereum: 20,
@@ -45,5 +45,11 @@ export const config : Config = {
       arbitrum: 23
     }
   },
-  destinationFeeGasPriceMultiplier: 1.2
+  destinationFeeGasPriceMultiplier: 1.2,
+  relayerFeeEnabled: {
+    polygon: false,
+    gnosis: false,
+    optimism: false,
+    arbitrum: false
+  }
 }
