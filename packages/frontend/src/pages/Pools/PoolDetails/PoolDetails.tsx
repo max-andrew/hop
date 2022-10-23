@@ -24,11 +24,13 @@ import SelectOption from 'src/components/selects/SelectOption'
 import { Slider } from 'src/components/slider'
 import { BigNumber } from 'ethers'
 import { formatUnits, parseUnits } from 'ethers/lib/utils'
+import { ReactComponent as Bolt } from 'src/assets/bolt.svg'
 import {
   commafy,
   sanitizeNumericalString,
   BNMin,
-  formatTokenDecimalString
+  formatTokenDecimalString,
+  getTokenImage
 } from 'src/utils'
 import { useStaking } from '../useStaking'
 import { stakingRewardsContracts, hopStakingRewardsContracts, metadata, reactAppNetwork } from 'src/config'
@@ -101,30 +103,48 @@ export const useStyles = makeStyles(theme => ({
       width: '100%'
     },
   },
-  hopRewards: {
+  claimRewards: {
     [theme.breakpoints.down('xs')]: {
       width: '90%'
     },
   },
-  hopRewardsBox: {
+  claimRewardsBox: {
     background: theme.palette.type === 'dark' ? '#0000003d' : '#fff',
     borderRadius: '1rem',
   },
-  hopRewardsFlex: {
+  claimRewardsFlex: {
     [theme.breakpoints.down('xs')]: {
       flexDirection: 'column',
       justifyContent: 'center',
       textAlign: 'center',
     },
   },
-  hopImage: {
+  stakingRewardsImage: {
     width: '30px'
+  },
+  stakingAprChainImage: {
+    width: '20px',
+  },
+  stakingTabsContainer: {
+    [theme.breakpoints.down('xs')]: {
+      flexDirection: 'column'
+    },
+  },
+  stakingTabButtonBox: {
+    padding: '0.5rem 2.5rem',
+    '&[data-selected="true"]': {
+      borderRadius: '3rem',
+      boxShadow: theme.palette.type === 'dark' ? '-6px 6px 12px 0px #121212, -5px -5px 14px 0px #00000026 inset, -6px 6px 12px 0px #26262666 inset' : '5px -5px 12px 0px #FFFFFF, -6px 6px 12px 0px #D8D5DC, -5px -5px 14px 0px #FFFFFF26 inset, -6px 6px 12px 0px #E9E5E866 inset',
+    }
+  },
+  stakingTabImage: {
+    width: '18px'
   }
 }))
 
 function BalanceText(props: any) {
   const styles = useStyles()
-  const { balanceFormatted, balanceNum, balanceBn, onClick } = props
+  const { label, balanceFormatted, balanceNum, balanceBn, onClick } = props
 
   function handleClick (event: any) {
     event.preventDefault()
@@ -134,13 +154,26 @@ function BalanceText(props: any) {
     }
   }
 
+  const text = (
+    <Typography variant="body2" color="secondary">
+      <strong>{label || 'Balance'}: {balanceFormatted}</strong>
+    </Typography>
+  )
+
+  const showLink = !!onClick
+  if (showLink) {
+    return (
+      <Box>
+        <Link to="" onClick={handleClick} className={styles.balanceLink}>
+          {text}
+        </Link>
+      </Box>
+    )
+  }
+
   return (
     <Box>
-      <Link to="" onClick={handleClick} className={styles.balanceLink}>
-        <Typography variant="body2" color="secondary">
-          <strong>Balance: {balanceFormatted}</strong>
-        </Typography>
-      </Link>
+      {text}
     </Box>
   )
 }
@@ -176,27 +209,29 @@ function PoolEmptyState() {
   )
 }
 
-function HopRewardsClaim(props: any) {
+function StakingRewardsClaim(props: any) {
   const {
     chainSlug,
     tokenSymbol,
-    walletConnected,
-    hopStakingContractAddress
+    stakingContractAddress
   } = props.data
+  if (!stakingContractAddress) {
+    return null
+  }
   const styles = useStyles()
   const {
     canClaim,
     claim,
     isClaiming,
-    earnedAmountFormatted
-  } = useStaking(chainSlug, tokenSymbol, hopStakingContractAddress)
+    earnedAmountFormatted,
+    rewardsTokenSymbol,
+    rewardsTokenImageUrl,
+  } = useStaking(chainSlug, tokenSymbol, stakingContractAddress)
 
   function handleClaimClick(event: any) {
     event.preventDefault()
     claim()
   }
-
-  const hopLogo = metadata.tokens.HOP.image
 
   if (!canClaim) {
     return (
@@ -205,12 +240,12 @@ function HopRewardsClaim(props: any) {
   }
 
   return (
-    <Box mt={8} maxWidth="400px" width="100%" className={styles.hopRewards}>
-      <Box p={2} className={styles.hopRewardsBox}>
-        <Box display="flex" justifyItems="space-between" className={styles.hopRewardsFlex}>
+    <Box mt={8} maxWidth="400px" width="100%" className={styles.claimRewards}>
+      <Box p={2} className={styles.claimRewardsBox}>
+        <Box display="flex" justifyItems="space-between" className={styles.claimRewardsFlex}>
           <Box mr={2} display="flex" justifyContent="center" alignItems="center">
             <Box display="flex" justifyItems="center" alignItems="center">
-              <img className={styles.hopImage} src={hopLogo} alt='HOP' title='HOP' />
+              <img className={styles.stakingRewardsImage} src={rewardsTokenImageUrl} alt={rewardsTokenSymbol} title={rewardsTokenSymbol} />
             </Box>
           </Box>
           <Box width="100%">
@@ -249,7 +284,7 @@ function AccountPosition(props: any) {
     chainSlug,
     tokenSymbol,
     walletConnected,
-    hopStakingContractAddress
+    stakingContractAddress
   } = props.data
 
   return (
@@ -305,12 +340,14 @@ function AccountPosition(props: any) {
           </Box>
         </Box>
       </Box>
-      <HopRewardsClaim data={{
-          chainSlug,
-          tokenSymbol,
-          walletConnected,
-          hopStakingContractAddress
-      }} />
+      {!!stakingContractAddress && (
+        <StakingRewardsClaim data={{
+            chainSlug,
+            tokenSymbol,
+            walletConnected,
+            stakingContractAddress
+        }} />
+      )}
     </Box>
   )
 }
@@ -701,6 +738,7 @@ function WithdrawForm(props: any) {
 }
 
 function StakeForm(props: any) {
+  const styles = useStyles()
   const {
     chainSlug,
     tokenSymbol,
@@ -708,16 +746,10 @@ function StakeForm(props: any) {
   } = props.data
   const {
     amount,
-    approveTokens,
-    canClaim,
     canWithdraw,
-    claim,
     depositedAmountFormatted,
-    earnedAmountFormatted,
     error,
     isApprovalNeeded,
-    isApproving,
-    isClaiming,
     isRewardsExpired,
     isStaking,
     isWithdrawing,
@@ -728,12 +760,12 @@ function StakeForm(props: any) {
     overallTotalRewardsPerDayFormatted,
     overallTotalStakedFormatted,
     rewardsTokenSymbol,
+    rewardsTokenImageUrl,
     setAmount,
     setError,
-    stake,
+    approveAndStake,
+    stakingApr,
     stakingAprFormatted,
-    userRewardsPerDayFormatted,
-    userRewardsTotalUsdFormatted,
     walletConnected,
     warning,
     withdraw,
@@ -741,30 +773,19 @@ function StakeForm(props: any) {
 
   const isEmptyAmount = !Number(amount)
   const formDisabled = !walletConnected
-  const stakeButtonText = walletConnected ? 'Stake' : 'Connect Wallet'
-  const approveDisabled = formDisabled || isEmptyAmount || !isApprovalNeeded
+  const stakeButtonText = walletConnected ? 'Preview' : 'Connect Wallet'
   const stakeButtonDisabled = formDisabled || isEmptyAmount || isApprovalNeeded || !!warning
-  const claimButtonDisabled = formDisabled || !canClaim
   const withdrawButtonDisabled = formDisabled || !canWithdraw
-
-  function handleApproveClick (event: any) {
-    event.preventDefault()
-    approveTokens()
-  }
+  const showOverallStats = true
 
   function handleStakeClick (event: any) {
     event.preventDefault()
-    stake()
+    approveAndStake()
   }
 
   function handleWithdrawClick (event: any) {
     event.preventDefault()
     withdraw()
-  }
-
-  function handleClaimClick (event: any) {
-    event.preventDefault()
-    claim()
   }
 
   if (noStaking) {
@@ -777,65 +798,25 @@ function StakeForm(props: any) {
     )
   }
 
+  let stakingAprDisplay : any = ''
+  if (stakingApr > 0) {
+    stakingAprDisplay = (
+      <Box display="flex" justifyContent="center" alignItems="center">
+        <Box mr={0.5} title="Boosted APR"><Bolt /></Box>
+        {!!rewardsTokenImageUrl && <Box display="flex"><img className={styles.stakingAprChainImage} src={rewardsTokenImageUrl} alt={rewardsTokenSymbol} title={rewardsTokenSymbol} /></Box>}
+        <Box ml={1}>{stakingAprFormatted}</Box>
+      </Box>
+    )
+  } else {
+    stakingAprDisplay = `${stakingAprFormatted} ${isRewardsExpired ? '(rewards ended)' : ''}`
+  }
+
   return (
     <Box>
       <Box mb={2}>
-        <Typography variant="h6">
-          {rewardsTokenSymbol} Rewards
-        </Typography>
-      </Box>
-      <Box mb={4}>
-        <Typography variant="subtitle1">
-          My deposits
-        </Typography>
-        <Typography>
-          LP Balance: {lpBalanceFormatted} {lpTokenSymbol}
-        </Typography>
-        <Typography>
-          Staked LP <InfoTooltip title="LP tokens that have been deposited to earn rewards" />: {depositedAmountFormatted}
-        </Typography>
-        <Typography>
-          Total <InfoTooltip title="The total worth of your staked LP position in USD" />: {userRewardsTotalUsdFormatted}
-        </Typography>
-        <Typography>
-          Rewards <InfoTooltip title="The rewards you're earning per day" />: {userRewardsPerDayFormatted}
-        </Typography>
-        <Typography>
-          Earned <InfoTooltip title="Rewards earned that are claimable" />: {earnedAmountFormatted}
-        </Typography>
-        <Box mt={2}>
-          <Box mb={1}>
-            <Button large highlighted fullWidth onClick={handleClaimClick} disabled={claimButtonDisabled} loading={isClaiming}>
-              Claim
-            </Button>
-          </Box>
-          <Box mb={1}>
-            <Button large highlighted fullWidth onClick={handleWithdrawClick} disabled={withdrawButtonDisabled} loading={isWithdrawing}>
-              Withdraw
-            </Button>
-          </Box>
-        </Box>
-      </Box>
-      <Box mb={2}>
-        <Typography variant="subtitle1">
-          Staking stats
-        </Typography>
-        <Typography>
-          APR <InfoTooltip title="Annual Percentage Rate (APR) from staking LP tokens" />: {stakingAprFormatted} {isRewardsExpired ? '(rewards ended)' : ''}
-        </Typography>
-        <Typography>
-          Total Staked <InfoTooltip title="The total amount of LP tokens staked for rewards" />: {overallTotalStakedFormatted}
-        </Typography>
-        <Typography>
-          Total Rewards <InfoTooltip title="The total rewards being distributed per day" />: {overallTotalRewardsPerDayFormatted}
-        </Typography>
-      </Box>
-      <Box mb={1}>
-        <Typography variant="subtitle1">
-          Stake LP
-        </Typography>
-        <Box mb={1} display="flex" justifyContent="flex-end">
-          <BalanceText balanceFormatted={lpBalanceFormatted} balanceNum={lpBalance} onClick={setAmount} />
+        <Box mb={1} display="flex" justifyContent="space-between">
+          <BalanceText label="Staked" balanceFormatted={depositedAmountFormatted} />
+          <BalanceText label="Unstaked" balanceFormatted={lpBalanceFormatted} balanceNum={lpBalance} onClick={setAmount} />
         </Box>
         <InputField
           tokenSymbol={lpTokenSymbol}
@@ -844,15 +825,57 @@ function StakeForm(props: any) {
           disabled={formDisabled}
         />
       </Box>
-      <Box mb={1}>
-        <Button large highlighted fullWidth onClick={handleApproveClick} disabled={approveDisabled} loading={isApproving}>
-          Approve
-        </Button>
-      </Box>
-      <Box mb={1}>
+      {showOverallStats && (
+        <Box mb={1}>
+          <Box mb={2} display="flex" justifyContent="space-between">
+            <Box>
+              <Typography variant="body1">
+                APR <InfoTooltip title="Annual Percentage Rate (APR) from staking LP tokens" />
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body1">
+                {stakingAprDisplay}
+              </Typography>
+            </Box>
+          </Box>
+          <Box mb={2} display="flex" justifyContent="space-between">
+            <Box>
+              <Typography variant="body1">
+                Total Staked <InfoTooltip title="The total amount of LP tokens staked for rewards" />
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body1">
+                {overallTotalStakedFormatted}
+              </Typography>
+            </Box>
+          </Box>
+          <Box mb={1} display="flex" justifyContent="space-between">
+            <Box>
+              <Typography variant="body1">
+                Total Rewards <InfoTooltip title="The total rewards being distributed per day" />
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body1">
+                {overallTotalRewardsPerDayFormatted}
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      )}
+      <Box mt={4} mb={1}>
         <Button large highlighted fullWidth onClick={handleStakeClick} disabled={stakeButtonDisabled} loading={isStaking}>
           {stakeButtonText}
         </Button>
+        {canWithdraw && (
+          <Box mt={4}>
+            <Button text fullWidth onClick={handleWithdrawClick} disabled={withdrawButtonDisabled} loading={isWithdrawing}>
+              Withdraw
+            </Button>
+          </Box>
+        )}
       </Box>
       <Box>
         <Alert severity="warning">{warning}</Alert>
@@ -1058,6 +1081,7 @@ export function PoolDetails () {
   const history = useHistory()
   const { tab } = useParams<{ tab: string }>()
   const [selectedTab, setSelectedTab] = useState(tab || 'deposit')
+  const [selectedStaking, setSelectedStaking] = useState('0')
   const { theme } = useThemeMode()
 
   const calculateRemoveLiquidityPriceImpact = calculateRemoveLiquidityPriceImpactFn(userPoolBalance)
@@ -1074,13 +1098,36 @@ export function PoolDetails () {
     goToTab(newValue)
   }
 
+  function handleStakingChange(event: ChangeEvent<{}>, newValue: string) {
+    setSelectedStaking(newValue)
+  }
+
   const totalAmount = BigNumber.from(token0Deposited || 0).add(BigNumber.from(token1Deposited || 0))
   const token0Max = BNMin(poolReserves[0], totalAmount)
   const token1Max = BNMin(poolReserves[1], totalAmount)
 
   const stakingContractAddress = stakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
   const hopStakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
-  const stakingEnabled = !!(stakingContractAddress || hopStakingContractAddress)
+  const stakingRewards :any[] = []
+  if (hopStakingContractAddress) {
+    const rewardTokenSymbol = 'HOP'
+    stakingRewards.push({
+      stakingContractAddress: hopStakingContractAddress,
+      rewardTokenSymbol,
+      rewardTokenImageUrl: getTokenImage(rewardTokenSymbol),
+    })
+  }
+  if (stakingContractAddress) {
+    const rewardTokenSymbol = chainSlug === 'gnosis' ? 'GNO' : (chainSlug === 'polygon' ? 'MATIC' : 'ETH')
+    stakingRewards.push({
+      stakingContractAddress: stakingContractAddress,
+      rewardTokenSymbol,
+      rewardTokenImageUrl: getTokenImage(rewardTokenSymbol)
+    })
+  }
+
+  const stakingEnabled = stakingRewards.length > 0
+  const selectedStakingContractAddress = stakingRewards[selectedStaking]?.stakingContractAddress
 
   return (
     <Box maxWidth={"900px"} m={"0 auto"}>
@@ -1145,6 +1192,7 @@ export function PoolDetails () {
                       chainSlug,
                       tokenSymbol,
                       walletConnected,
+                      stakingContractAddress: selectedStakingContractAddress
                     }}
                   />
                   )}
@@ -1217,32 +1265,51 @@ export function PoolDetails () {
                     <>
                       {stakingEnabled && (
                         <>
-                        {!!stakingContractAddress && (
-                          <Box mb={4}>
-                            <StakeForm
-                              data={{
-                                chainSlug,
-                                tokenSymbol,
-                                stakingContractAddress
-                              }}
-                            />
+                        {stakingRewards.length > 0 && (
+                          <Box mb={2} display="flex" alignItems="center" className={styles.stakingTabsContainer}>
+                            <Box>
+                              <Typography variant="subtitle1">
+                                Earn
+                              </Typography>
+                            </Box>
+                            <Tabs value={selectedStaking} onChange={handleStakingChange}>
+                              {stakingRewards.map((stakingReward, index) => {
+                                const value = index.toString()
+                                const selected = selectedStaking === value
+                                return (
+                                  <Tab label={<Box style={{
+                                    paddingLeft: '1rem',
+                                    paddingBottom: '1rem',
+                                    transition: 'translate(0, 5px)',
+                                  }} >
+                                  <Box display="flex" alignItems="center" data-selected={selected} className={styles.stakingTabButtonBox}>
+                                    <Box mr={0.5} display="flex" justifyItems="center" alignItems="center">
+                                      <img className={styles.stakingTabImage} src={stakingReward.rewardTokenImageUrl} alt={stakingReward.rewardTokenSymbol} title={stakingReward.rewardTokenSymbol} />
+                                    </Box>
+                                    <Typography variant="body2">
+                                      {stakingReward.rewardTokenSymbol}
+                                    </Typography>
+                                  </Box>
+                                  </Box>} value={value} />
+                                )
+                              })}
+                            </Tabs>
                           </Box>
                         )}
-                        {!!hopStakingContractAddress && (
-                          <Box mb={4}>
-                            <StakeForm
-                              data={{
-                                chainSlug,
-                                tokenSymbol,
-                                stakingContractAddress: hopStakingContractAddress
-                              }}
-                            />
-                          </Box>
-                        )}
+
+                        <Box mb={4}>
+                          <StakeForm
+                            data={{
+                              chainSlug,
+                              tokenSymbol,
+                              stakingContractAddress: stakingRewards[selectedStaking].stakingContractAddress,
+                            }}
+                          />
+                        </Box>
                         </>
                       )}
                       {!stakingEnabled && (
-                        <Typography>
+                        <Typography variant="body1">
                           There is no staking available for this asset on this chain.
                         </Typography>
                       )}
