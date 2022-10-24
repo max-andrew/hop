@@ -46,6 +46,11 @@ export const useStyles = makeStyles(theme => ({
     boxShadow: 'none',
     color: 'white'
   },
+  poolName: {
+    [theme.breakpoints.down('xs')]: {
+      flexDirection: 'column'
+    },
+  },
   hideMobile: {
     [theme.breakpoints.down('xs')]: {
       display: 'none'
@@ -90,7 +95,7 @@ export function PoolRow (props: Props) {
     <tr className={styles.tr}>
       <td>
         <Link to={depositLink} className={styles.poolLink}>
-          <Box p={1} display="flex">
+          <Box p={1} display="flex" className={styles.poolName}>
             <Box mr={2}>
               <Box className={styles.imageContainer}>
                 <img className={styles.chainImage} src={chain.imageUrl} alt={chain.name} title={chain.name} />
@@ -143,7 +148,7 @@ export function PoolRow (props: Props) {
               {stakingRewards.length > 0 ? <Box ml={0.5} display="flex">
                 {stakingRewards.map((x: any, i: number) => {
                   return (
-                    <img className={styles.stakingAprChainImage} src={x.imageUrl} alt={x.name} title={x.name} style={{
+                    <img key={x.name} className={styles.stakingAprChainImage} src={x.imageUrl} alt={x.name} title={x.name} style={{
                       transform: `translateX(-${8 * i}px)`
                     }} />
                   )
