@@ -33,7 +33,7 @@ import {
   getTokenImage
 } from 'src/utils'
 import { useStaking } from '../useStaking'
-import { stakingRewardsContracts, hopStakingRewardsContracts, reactAppNetwork } from 'src/config'
+import { stakingRewardTokens, stakingRewardsContracts, hopStakingRewardsContracts, reactAppNetwork } from 'src/config'
 import TokenWrapper from 'src/components/TokenWrapper'
 
 export const useStyles = makeStyles(theme => ({
@@ -786,13 +786,11 @@ function StakeForm(props: any) {
     stakingAprFormatted,
     walletConnected,
     warning,
-    withdraw,
-    isActive,
-    loading
+    withdraw
   } = useStaking(chainSlug, tokenSymbol, stakingContractAddress)
 
   const isEmptyAmount = !Number(amount)
-  const formDisabled = !(walletConnected && isActive)
+  const formDisabled = !walletConnected
   const stakeButtonText = walletConnected ? 'Preview' : 'Connect Wallet'
   const stakeButtonDisabled = formDisabled || isEmptyAmount || isApprovalNeeded || !!warning
   const withdrawButtonDisabled = formDisabled || !canWithdraw
@@ -1139,7 +1137,7 @@ export function PoolDetails () {
     })
   }
   if (stakingContractAddress) {
-    const rewardTokenSymbol = chainSlug === 'gnosis' ? 'GNO' : (chainSlug === 'polygon' ? 'MATIC' : 'ETH')
+    const rewardTokenSymbol = stakingRewardTokens?.[reactAppNetwork]?.[chainSlug]?.[stakingContractAddress?.toLowerCase()] ?? ''
     stakingRewards.push({
       stakingContractAddress: stakingContractAddress,
       rewardTokenSymbol,
