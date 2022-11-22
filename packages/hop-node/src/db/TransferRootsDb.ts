@@ -7,10 +7,9 @@ import {
   OneHourMs,
   OneWeekMs,
   RelayableChains,
-  RootSetSettleDelayMs,
-  TimeFromL1ToL2Ms
+  RootSetSettleDelayMs
 } from 'src/constants'
-import { TxRetryDelayMs, nitroStartTimestamp, oruChains } from 'src/config'
+import { IsExitSystemLive, TxRetryDelayMs, oruChains, wrapperConfirmationChains } from 'src/config'
 import { normalizeDbItem } from './utils'
 
 interface BaseTransferRoot {
@@ -25,6 +24,7 @@ interface BaseTransferRoot {
   committedAt?: number
   commitTxBlockNumber?: number
   commitTxHash?: string
+  confirmBlockNumber?: number
   confirmed?: boolean
   confirmedAt?: number
   confirmTxHash?: string
@@ -218,6 +218,7 @@ class SubDbIncompletes extends BaseDb {
       !item.commitTxBlockNumber ||
       (item.commitTxHash && !item.committedAt) ||
       (item.bondTxHash && (!item.bonder || !item.bondedAt)) ||
+      (item.confirmTxHash && !item.confirmedAt) ||
       (item.rootSetBlockNumber && !item.rootSetTimestamp) ||
       (item.sourceChainId && item.destinationChainId && item.commitTxBlockNumber && item.totalAmount && !item.transferIds)
       /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
@@ -563,14 +564,67 @@ class TransferRootsDb extends BaseDb {
     return filtered as ExitableTransferRoot[]
   }
 
+  async getConfirmableTransferRoots (
+    filter: GetItemsFilter = {}
+  ): Promise<ExitableTransferRoot[]> {
+    await this.tilReady()
+    const transferRoots: TransferRoot[] = await this.getTransferRootsFromTwoWeeks()
+    const filtered = transferRoots.filter(item => {
+      // TODO: Remove this when the exit system is fully live
+      if (!IsExitSystemLive) {
+        return false
+      }
+
+      if (!item.sourceChainId) {
+        return false
+      }
+
+      if (!this.isRouteOk(filter, item)) {
+        return false
+      }
+
+      let timestampOk = true
+      if (item.sentConfirmTxAt) {
+        timestampOk =
+          item.sentConfirmTxAt + TxRetryDelayMs < Date.now()
+      }
+
+      const isChallenged = item?.challenged === true
+
+      let bondTimestampOk = true
+      if (item?.bondedAt) {
+        const bondedAtMs = item.bondedAt * 1000
+        bondTimestampOk = bondedAtMs + ChallengePeriodMs < Date.now()
+      }
+
+      const sourceChain = chainIdToSlug(item.sourceChainId)
+      const isWrapperConfirmableChain = wrapperConfirmationChains.has(sourceChain)
+
+      return (
+        item.commitTxHash &&
+        !item.confirmed &&
+        item.transferRootHash &&
+        item.transferRootId &&
+        item.totalAmount &&
+        item.destinationChainId &&
+        item.committed &&
+        item.committedAt &&
+        item.bonded &&
+        item.bondedAt &&
+        !isChallenged &&
+        timestampOk &&
+        bondTimestampOk &&
+        isWrapperConfirmableChain
+      )
+    })
+
+    return filtered as ExitableTransferRoot[]
+  }
+
   async getRelayableTransferRoots (
     filter: GetItemsFilter = {}
   ): Promise<RelayableTransferRoot[]> {
     await this.tilReady()
-    // TODO: Remove this post-nitro
-    if (!nitroStartTimestamp) {
-      return []
-    }
     const transferRoots: TransferRoot[] = await this.getTransferRootsFromTwoWeeks()
     const filtered = transferRoots.filter(item => {
       if (!item.sourceChainId) {
@@ -598,16 +652,6 @@ class TransferRootsDb extends BaseDb {
         return false
       }
 
-      // TODO: Remove this one week post-nitro
-      if (item.bondedAt && item.bondedAt < nitroStartTimestamp) {
-        return false
-      }
-
-      // TODO: Remove this one week post-nitro
-      if (item.confirmedAt && item.confirmedAt < nitroStartTimestamp) {
-        return false
-      }
-
       const isSeenOnL1 = item?.bonded ?? item?.confirmed
 
       let sentTxTimestampOk = true
@@ -615,20 +659,15 @@ class TransferRootsDb extends BaseDb {
         sentTxTimestampOk = item.sentRelayTxAt + TxRetryDelayMs < Date.now()
       }
 
-      // bondedAt should be checked first because a root can have both but it should be bonded prior to being confirmed
-      const seenOnL1Timestamp = item?.bondedAt ?? item?.confirmedAt
-      const seenOnL1TimestampMs: number = seenOnL1Timestamp! * 1000
-      const seenOnL1TimestampOk = seenOnL1TimestampMs + TimeFromL1ToL2Ms[destinationChain] < Date.now()
-
       return (
+        !item.rootSetTxHash &&
         item.commitTxHash &&
         item.transferRootHash &&
         item.transferRootId &&
         item.committed &&
         item.committedAt &&
         isSeenOnL1 &&
-        sentTxTimestampOk &&
-        seenOnL1TimestampOk
+        sentTxTimestampOk
       )
     })
 

@@ -1,6 +1,7 @@
 import { Slug } from '@hop-protocol/sdk'
 import { BigNumberish } from 'ethers'
 import logger from 'src/logger'
+import { reactAppNetwork } from 'src/config'
 
 export function getUrl(chain: Slug | string) {
   if (chain === Slug.gnosis) {
@@ -11,9 +12,31 @@ export function getUrl(chain: Slug | string) {
     chain = 'mainnet'
   }
 
+  if (reactAppNetwork === 'goerli') {
+    if (chain === 'mainnet') {
+      chain = 'goerli'
+    }
+    if (chain === 'polygon') {
+      chain = 'mumbai'
+    }
+    if (chain === 'optimism') {
+      chain = 'optimism-goerli'
+    }
+    if (chain === 'arbitrum') {
+      throw new Error(`chain "${chain}" is not supported on goerli subgraphs`)
+    }
+    if (chain === 'xdai') {
+      throw new Error(`chain "${chain}" is not supported on goerli subgraphs`)
+    }
+
+    return `https://api.thegraph.com/subgraphs/name/hop-protocol/hop-${chain}`
+  }
+
   if (chain === Slug.mainnet) {
-    // return `https://api.thegraph.com/subgraphs/name/hop-protocol/hop-mainnet`
-    return 'https://gateway.thegraph.com/api/bd5bd4881b83e6c2c93d8dc80c9105ba/subgraphs/id/Cjv3tykF4wnd6m9TRmQV7weiLjizDnhyt6x2tTJB42Cy'
+    // In order to use the decentralized service, please ensure the decentralized subgraph is pushed and published. This
+    // is a different process than the centralized subgraph.
+    return `https://api.thegraph.com/subgraphs/name/hop-protocol/hop-mainnet`
+    // return 'https://gateway.thegraph.com/api/bd5bd4881b83e6c2c93d8dc80c9105ba/subgraphs/id/Cjv3tykF4wnd6m9TRmQV7weiLjizDnhyt6x2tTJB42Cy'
   } else {
     return `https://api.thegraph.com/subgraphs/name/hop-protocol/hop-${chain}`
   }

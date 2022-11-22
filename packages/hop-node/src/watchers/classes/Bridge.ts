@@ -5,7 +5,7 @@ import getTokenDecimals from 'src/utils/getTokenDecimals'
 import getTokenMetadataByAddress from 'src/utils/getTokenMetadataByAddress'
 import getTransferRootId from 'src/utils/getTransferRootId'
 import { BigNumber, Contract, providers } from 'ethers'
-import { Chain, GasCostTransactionType, SettlementGasLimitPerTx } from 'src/constants'
+import { Chain, ChainHasFinalizationTag, GasCostTransactionType, SettlementGasLimitPerTx } from 'src/constants'
 import { DbSet, getDbSet } from 'src/db'
 import { Event } from 'src/types'
 import { L1Bridge as L1BridgeContract } from '@hop-protocol/core/contracts/L1Bridge'
@@ -441,7 +441,7 @@ export default class Bridge extends ContractBase {
     // Define a max gasLimit in order to avoid gas siphoning
     let gasLimit = 500_000
     if (this.chainSlug === Chain.Arbitrum) {
-      gasLimit = 2_000_000
+      gasLimit = 10_000_000
     }
     txOverrides.gasLimit = gasLimit
 
@@ -615,8 +615,13 @@ export default class Bridge extends ContractBase {
     let start: number
     let totalBlocksInBatch: number
     const { totalBlocks, batchBlocks } = globalConfig.sync[this.chainSlug]
-    const currentBlockNumber = await this.getBlockNumber()
-    const currentBlockNumberWithFinality = currentBlockNumber - this.waitConfirmations
+    let currentBlockNumberWithFinality: number
+    if (ChainHasFinalizationTag[this.chainSlug]) {
+      currentBlockNumberWithFinality = await this.getFinalizedBlockNumber()
+    } else {
+      const currentBlockNumber = await this.getBlockNumber()
+      currentBlockNumberWithFinality = currentBlockNumber - this.waitConfirmations
+    }
     const isInitialSync = !state?.latestBlockSynced && startBlockNumber && !endBlockNumber
     const isSync = state?.latestBlockSynced && startBlockNumber && !endBlockNumber
 
@@ -672,7 +677,10 @@ export default class Bridge extends ContractBase {
     return `${chainId}:${address}:${key}`
   }
 
-  shouldAttemptSwap (amountOutMin: BigNumber, deadline: BigNumber): boolean {
+  shouldAttemptSwapDuringBondWithdrawal (amountOutMin: BigNumber, deadline: BigNumber): boolean {
+    // Do not check if the asset uses an AMM. This function only cares about the amountOutMin and deadline
+    // so that it knows what function to call on-chain. This function is unconcerned with wether or not
+    // an asset uses an AMM, since a non-AMM asset can still provide amountOutMin and deadline values.
     return amountOutMin?.gt(0) || deadline?.gt(0)
   }
 
@@ -768,20 +776,13 @@ export default class Bridge extends ContractBase {
   ) {
     const chainNativeTokenSymbol = this.getChainNativeTokenSymbol(chain)
     const provider = getRpcProvider(chain)!
-    let gasPrice = await provider.getGasPrice()
+    const gasPrice = await provider.getGasPrice()
 
     let gasCost: BigNumber = BigNumber.from('0')
     if (transactionType === GasCostTransactionType.Relay) {
       // Relay transactions use the gasLimit as the gasCost
       gasCost = gasLimit
     } else {
-      // Arbitrum returns a gasLimit & gasPriceBid that exceeds the actual used.
-      // The values change as they collect more data. 2x here is generous but they should never go under this.
-      if (this.chainSlug === Chain.Arbitrum) {
-        gasPrice = gasPrice.div(2)
-        gasLimit = gasLimit.div(2)
-      }
-
       // Include the cost to settle an individual transfer
       const settlementGasLimitPerTx: number = SettlementGasLimitPerTx[chain]
       const gasLimitWithSettlement = gasLimit.add(settlementGasLimitPerTx)

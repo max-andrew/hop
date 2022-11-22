@@ -53,6 +53,9 @@ export enum CanonicalToken {
   WBTC = 'WBTC',
   sBTC = 'sBTC',
   sETH = 'sETH',
+  HOP = 'HOP',
+  SNX = 'SNX',
+  sUSD = 'sUSD'
 }
 
 export enum WrappedToken {
@@ -67,6 +70,7 @@ export enum HToken {
   hUSDC = 'hUSDC',
   hUSDT = 'hUSDT',
   hDAI = 'hDAI',
+  hHop = 'hHOP',
 }
 
 export type TokenSymbol = CanonicalToken | WrappedToken | HToken | string
@@ -87,16 +91,16 @@ export const SettlementGasLimitPerTx: Record<string, number> = {
   polygon: 5933,
   gnosis: 3218,
   optimism: 8545,
-  arbitrum: 59105
+  arbitrum: 19843
 }
 
 export const LpFeeBps = '4'
 export const PendingAmountBuffer = '50000'
 export const MinPolygonGasPrice = 30_000_000_000
-export const MinPolygonGasLimit = BigNumber.from(500_000)
+export const MinPolygonGasLimit = BigNumber.from(1_000_000)
 
 export enum Errors {
-  NotEnoughAllowance = 'Not enough allowance. Please call `approve` on token contract to allow contract to move tokens.',
+  NotEnoughAllowance = 'Not enough allowance. Please call `approve` on the token contract to allow contract to move tokens and make sure you are connected to the correct network.',
   xDaiRebrand = 'NOTICE: xDai has been rebranded to Gnosis. Chain "xdai" is deprecated. Use "gnosis" instead.'
 }
 
@@ -106,3 +110,5 @@ export enum EventNames {
 }
 
 export const MaxDeadline: number = 9999999999
+export const LowLiquidityTokens = ['HOP', 'SNX']
+export const SecondsInDay = 86400

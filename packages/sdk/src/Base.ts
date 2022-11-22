@@ -20,9 +20,12 @@ import { L2PolygonChildERC20 } from '@hop-protocol/core/contracts/L2PolygonChild
 import { L2PolygonChildERC20__factory } from '@hop-protocol/core/contracts/factories/L2PolygonChildERC20__factory'
 import { L2XDaiToken } from '@hop-protocol/core/contracts/L2XDaiToken'
 import { L2XDaiToken__factory } from '@hop-protocol/core/contracts/factories/L2XDaiToken__factory'
+import { RelayerFee } from './relayerFee'
 import { TChain, TProvider, TToken } from './types'
 import { config, metadata } from './config'
 import { getContractFactory, predeploys } from '@eth-optimism/contracts'
+import { getProviderFromUrl } from './utils/getProviderFromUrl'
+import { getUrlFromProvider } from './utils/getUrlFromProvider'
 import { parseEther, serializeTransaction } from 'ethers/lib/utils'
 
 export type L1Factory = L1PolygonPosRootChainManager__factory | L1XDaiForeignOmniBridge__factory | ArbitrumGlobalInbox__factory | L1OptimismTokenBridge__factory
@@ -41,17 +44,22 @@ const cacheExpireMs = 1 * 60 * 1000
 
 // cache provider
 const getProvider = memoize((network: string, chain: string) => {
+  if (!config.chains[network]?.[chain]) {
+    throw new Error(`config for chain not found: ${network} ${chain}`)
+  }
   const rpcUrl = config.chains[network][chain].rpcUrl
   if (!rpcUrl) {
-    if (network === 'staging') {
-      network = 'mainnet'
+    if (network === NetworkSlug.Staging) {
+      network = NetworkSlug.Mainnet
     }
     return providers.getDefaultProvider(network)
   }
-  return new providers.StaticJsonRpcProvider({
-    url: rpcUrl,
-    timeout: 5 * 60 * 1000
-  })
+
+  const fallbackRpcUrls = config.chains[network][chain].fallbackRpcUrls ?? []
+  const rpcUrls = [rpcUrl, ...fallbackRpcUrls]
+
+  const provider = getProviderFromUrl(rpcUrls)
+  return provider
 })
 
 const getContractMemo = memoize(
@@ -82,8 +90,8 @@ const getContract = async (
   const signerAddress = p?.getAddress ? await p?.getAddress() : ''
   const chainId = p?.provider?._network?.chainId ?? ''
   await p?._networkPromise
-  const fallbackProviderChainId = p?._network?.chainId ?? ''
-  const rpcUrl = p?.connection?.url ?? ''
+  const fallbackProviderChainId = p?._network?.chainId ?? p?.providers?.[0]?._network?.chainId ?? ''
+  const rpcUrl = getUrlFromProvider(p)
   const cacheKey = `${signerAddress}${chainId}${fallbackProviderChainId}${rpcUrl}`
   return getContractMemo(factory, address, cacheKey)(provider)
 }
@@ -101,12 +109,13 @@ class Base {
 
   public chainProviders: ChainProviders = {}
 
-  private addresses : Record<string, any>
-  private chains: Record<string, any>
-  private bonders :Record<string, any>
+  addresses : Record<string, any>
+  chains: Record<string, any>
+  bonders :Record<string, any>
   fees : { [token: string]: Record<string, number>}
   gasPriceMultiplier: number = 0
   destinationFeeGasPriceMultiplier : number = 1
+  relayerFeeEnabled: Record<string, boolean>
 
   baseExplorerUrl: string = 'https://explorer.hop.exchange'
 
@@ -144,6 +153,10 @@ class Base {
     this.bonders = config.bonders[network]
     this.fees = config.bonderFeeBps[network]
     this.destinationFeeGasPriceMultiplier = config.destinationFeeGasPriceMultiplier[network]
+    this.relayerFeeEnabled = config.relayerFeeEnabled[network]
+    if (this.network === NetworkSlug.Goerli) {
+      this.baseExplorerUrl = 'https://goerli.explorer.hop.exchange'
+    }
 
     this.init()
   }
@@ -158,24 +171,32 @@ class Base {
 
   async fetchConfigFromS3 () {
     try {
-      const cached = s3FileCache[this.network]
+      let cached = s3FileCache[this.network]
       const isExpired = s3FileCacheTimestamp + cacheExpireMs < Date.now()
-      if (cached && !isExpired) {
-        return cached
+      if (cached && isExpired) {
+        cached = null
       }
 
-      const data = s3FileCache[this.network] || await this.getS3ConfigData()
-      if (data.bonders) {
-        this.bonders = data.bonders
+      const data = cached || await this.getS3ConfigData()
+      if (data) {
+        if (data.bonders) {
+          this.bonders = data.bonders
+        }
+        if (data.bonderFeeBps) {
+          this.fees = data.bonderFeeBps
+        }
+        if (data.destinationFeeGasPriceMultiplier) {
+          this.destinationFeeGasPriceMultiplier = data.destinationFeeGasPriceMultiplier
+        }
+        if (data.relayerFeeEnabled) {
+          this.relayerFeeEnabled = data.relayerFeeEnabled
+        }
+
+        if (!cached) {
+          s3FileCache[this.network] = data
+          s3FileCacheTimestamp = Date.now()
+        }
       }
-      if (data.bonderFeeBps) {
-        this.fees = data.bonderFeeBps
-      }
-      if (data.destinationFeeGasPriceMultiplier) {
-        this.destinationFeeGasPriceMultiplier = data.destinationFeeGasPriceMultiplier
-      }
-      s3FileCache[this.network] = data
-      s3FileCacheTimestamp = Date.now()
       return data
     } catch (err: any) {
       console.error('fetchConfigFromS3 error:', err)
@@ -229,7 +250,7 @@ class Base {
         )
       }
       if (chainProviders[chainSlug]) {
-        this.chainProviders[chain.slug] = new providers.StaticJsonRpcProvider(chainProviders[chainSlug])
+        this.chainProviders[chain.slug] = getProviderFromUrl(chainProviders[chainSlug])
       }
     }
   }
@@ -242,12 +263,27 @@ class Base {
     return this.supportedNetworks.includes(network)
   }
 
-  get supportedChains () {
+  // all chains supported.
+  // this may be overriden by child class to make it asset specific.
+  get supportedChains (): string[] {
+    return this.configChains
+  }
+
+  // all chains available in config
+  get configChains (): string[] {
     return Object.keys(this.chains)
   }
 
+  getSupportedChains (): string[] {
+    return this.supportedChains
+  }
+
+  geConfigChains (): string[] {
+    return this.configChains
+  }
+
   isValidChain (chain: string) {
-    return this.supportedChains.includes(chain)
+    return this.configChains.includes(chain)
   }
 
   /**
@@ -270,7 +306,7 @@ class Base {
       throw new Error(
         `chain "${
           chain.slug
-        }" is unsupported. Supported chains are: ${this.supportedChains.join(
+        }" is unsupported. Supported chains are: ${this.configChains.join(
           ','
         )}`
       )
@@ -352,7 +388,7 @@ class Base {
 
   public getChainProviders = () => {
     const obj : Record<string, providers.Provider> = {}
-    for (const chainSlug of this.supportedChains) {
+    for (const chainSlug of this.configChains) {
       const provider = this.getChainProvider(chainSlug)
       obj[chainSlug] = provider
     }
@@ -362,7 +398,7 @@ class Base {
 
   public getChainProviderUrls = () => {
     const obj : Record<string, string> = {}
-    for (const chainSlug of this.supportedChains) {
+    for (const chainSlug of this.configChains) {
       const provider = this.getChainProvider(chainSlug)
       obj[chainSlug] = (provider as any)?.connection?.url
     }
@@ -398,7 +434,7 @@ class Base {
   public async getSignerOrProvider (
     chain: TChain,
     signer: TProvider = this.signer as Signer
-  ) {
+  ): Promise<Signer | providers.Provider> {
     // console.log('getSignerOrProvider')
     chain = this.toChainModel(chain)
     if (!signer) {
@@ -578,10 +614,31 @@ class Base {
     return this.destinationFeeGasPriceMultiplier
   }
 
+  public async getRelayerFee (destinationChain: TChain, tokenSymbol: string): Promise<BigNumber> {
+    await this.fetchConfigFromS3()
+    destinationChain = this.toChainModel(destinationChain)
+    const isFeeEnabled = this.relayerFeeEnabled[destinationChain.slug]
+    if (!isFeeEnabled) {
+      return BigNumber.from(0)
+    }
+
+    if (destinationChain.equals(Chain.Arbitrum)) {
+      const relayerFee = new RelayerFee(this.network, tokenSymbol)
+      return relayerFee.getRelayCost(destinationChain.slug)
+    }
+
+    return BigNumber.from(0)
+  }
+
   async getS3ConfigData () {
+    const controller = new AbortController()
+    const timeoutMs = 5 * 1000
+    setTimeout(() => controller.abort(), timeoutMs)
     const cacheBust = Date.now()
     const url = `https://assets.hop.exchange/${this.network}/v1-core-config.json?cb=${cacheBust}`
-    const res = await fetch(url)
+    const res = await fetch(url, {
+      signal: controller.signal
+    })
     const json = await res.json()
     if (!json) {
       throw new Error('expected json object')
@@ -670,6 +727,10 @@ class Base {
       throw new Error(json.error)
     }
     return json.data?.[0] ?? null
+  }
+
+  getProviderRpcUrl (provider: any) {
+    return getUrlFromProvider(provider)
   }
 }
 

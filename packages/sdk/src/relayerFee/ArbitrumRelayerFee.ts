@@ -1,25 +1,26 @@
-import { BigNumber, constants, utils as ethersUtils, providers } from 'ethers'
+import { BigNumber, constants, utils as ethersUtils } from 'ethers'
 import { Chain } from '../models'
 import { IRelayerFee } from './IRelayerFee'
 import { MaxDeadline } from '../constants'
 import { config } from '../config'
+import { getProviderFromUrl } from '../utils/getProviderFromUrl'
 
 export class ArbitrumRelayerFee implements IRelayerFee {
-  // The token has a negligible effect on the gas cost, so we can use any token
-  token: string = 'USDC'
   network: string
+  token: string
 
-  constructor (network: string) {
+  constructor (network: string, token: string) {
     this.network = network
+    this.token = token
   }
 
   async getRelayCost (): Promise<BigNumber> {
     const arbitrumRpcUrl = config.chains[this.network][Chain.Arbitrum.slug].rpcUrl
-    const provider = new providers.StaticJsonRpcProvider({ url: arbitrumRpcUrl })
+    const provider = getProviderFromUrl(arbitrumRpcUrl)
 
     // Submission Cost
     const l1RpcUrl = config.chains[this.network][Chain.Ethereum.slug].rpcUrl
-    const l1Provider = new providers.StaticJsonRpcProvider({ url: l1RpcUrl })
+    const l1Provider = getProviderFromUrl(l1RpcUrl)
     const distributeCalldataSize: number = 196
     const { baseFeePerGas } = await l1Provider.getBlock('latest')
     const submissionCost: BigNumber = this._calculateRetryableSubmissionFee(distributeCalldataSize, baseFeePerGas!)
@@ -35,9 +36,8 @@ export class ArbitrumRelayerFee implements IRelayerFee {
     const types = ['uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256']
     const decoded = ethersUtils.defaultAbiCoder.decode(types, gasInfo)
     const redemptionGasPrice = decoded[1]
-    const redemptionGasLimit = BigNumber.from(1980)
-    const l1TransactionCost = ethersUtils.parseUnits('0.00015')
-    const redemptionCost = redemptionGasLimit.mul(redemptionGasPrice).add(l1TransactionCost)
+    const redemptionGasLimit = BigNumber.from(1000)
+    const redemptionCost = redemptionGasLimit.mul(redemptionGasPrice)
 
     // Distribution Cost
     const encodedDistributeData = await this._getEncodedDistributeData()
@@ -72,7 +72,8 @@ export class ArbitrumRelayerFee implements IRelayerFee {
   }
 
   private async _getEncodedDistributeData (): Promise<string> {
-    const recipient = constants.AddressZero
+    // Do not use the zero address since some ERC20 tokens throw when sending to the zero address
+    const recipient = '0x0000000000000000000000000000000000000001'
     const amount = BigNumber.from(10)
     const amountOutMin = BigNumber.from(0)
     const deadline = BigNumber.from(MaxDeadline)
@@ -96,6 +97,7 @@ export class ArbitrumRelayerFee implements IRelayerFee {
   }
 
   private async _getEncodedEstimateRetryableTicketData (encodedDistributeData: string): Promise<string> {
+    // The alias address on Arbitrum needs to have enough funds to cover the tx in order for this to work
     const messengerWrapperAddress = this._getMessengerWrapperAddress()
     const sender = messengerWrapperAddress
     const deposit = BigNumber.from(0)

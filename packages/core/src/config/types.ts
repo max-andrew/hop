@@ -13,9 +13,20 @@ export type Fees = {
   MATIC?: Bps
   ETH?: Bps
   WBTC?: Bps
+  HOP?: Bps
+  SNX?: Bps
+  sUSD?: Bps
+}
+
+type RelayerFee = {
+  polygon?: boolean
+  gnosis?: boolean
+  optimism?: boolean
+  arbitrum?: boolean
 }
 
 export type Config = {
   bonderFeeBps: Fees
   destinationFeeGasPriceMultiplier: number
+  relayerFeeEnabled: RelayerFee
 }

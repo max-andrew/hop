@@ -39,6 +39,7 @@ type Config = {
   tokenSymbol: string
   bridgeContract: L1BridgeContract | L2BridgeContract
   syncFromDate?: string
+  resyncIntervalMs?: number
   gasCostPollEnabled?: boolean
 }
 
@@ -62,6 +63,11 @@ class SyncWatcher extends BaseWatcher {
     this.syncFromDate = config.syncFromDate!
     if (typeof config.gasCostPollEnabled === 'boolean') {
       this.gasCostPollEnabled = config.gasCostPollEnabled
+      this.logger.debug(`gasCostPollEnabled: ${this.gasCostPollEnabled}`)
+    }
+    if (typeof config.resyncIntervalMs === 'number') {
+      this.resyncIntervalMs = config.resyncIntervalMs
+      this.logger.debug(`resyncIntervalMs set to ${this.resyncIntervalMs}`)
     }
 
     this.init()
@@ -540,10 +546,11 @@ class SyncWatcher extends BaseWatcher {
     logger.debug('handling TransferRootConfirmed event')
 
     try {
-      const { transactionHash } = event
+      const { transactionHash, blockNumber } = event
       await this.db.transferRoots.update(transferRootId, {
         confirmed: true,
-        confirmTxHash: transactionHash
+        confirmTxHash: transactionHash,
+        confirmBlockNumber: blockNumber
       })
     } catch (err) {
       logger.error(`handleTransferRootConfirmedEvent error: ${err.message}`)
@@ -754,6 +761,7 @@ class SyncWatcher extends BaseWatcher {
 
     await this.populateTransferRootCommittedAt(transferRootId)
     await this.populateTransferRootBondedAt(transferRootId)
+    await this.populateTransferRootConfirmedAt(transferRootId)
     await this.populateTransferRootTimestamp(transferRootId)
     await this.populateTransferRootMultipleWithdrawSettled(transferRootId)
     await this.populateTransferRootTransferIds(transferRootId)
@@ -993,6 +1001,42 @@ class SyncWatcher extends BaseWatcher {
     await this.db.transferRoots.update(transferRootId, {
       bonder: from,
       bondedAt: timestamp
+    })
+  }
+
+  async populateTransferRootConfirmedAt (transferRootId: string) {
+    const logger = this.logger.create({ root: transferRootId })
+    logger.debug('starting populateTransferRootConfirmedAt')
+    const dbTransferRoot = await this.db.transferRoots.getByTransferRootId(transferRootId)
+    const { confirmTxHash, confirmBlockNumber, confirmedAt } = dbTransferRoot
+    if (
+      !confirmTxHash ||
+      confirmedAt
+    ) {
+      logger.debug('populateTransferRootConfirmedAt already found')
+      return
+    }
+
+    const destinationBridge = this.getSiblingWatcherByChainSlug(Chain.Ethereum).bridge
+    const tx = await destinationBridge.getTransaction(confirmTxHash)
+    if (!tx) {
+      logger.warn(`populateTransferRootConfirmedAt marking item not found: tx object for transactionHash: ${confirmTxHash} on chain: ${Chain.Ethereum}. dbItem: ${JSON.stringify(dbTransferRoot)}`)
+      await this.db.transferRoots.update(transferRootId, { isNotFound: true })
+      return
+    }
+
+    const timestamp = await destinationBridge.getBlockTimestamp(confirmBlockNumber)
+
+    if (!timestamp) {
+      logger.warn(`populateTransferRootConfirmedAt marking item not found. timestamp for confirmBlockNumber: ${confirmBlockNumber}. dbItem: ${JSON.stringify(dbTransferRoot)}`)
+      await this.db.transferRoots.update(transferRootId, { isNotFound: true })
+      return
+    }
+
+    logger.debug(`confirmedAt: ${timestamp}`)
+
+    await this.db.transferRoots.update(transferRootId, {
+      confirmedAt: timestamp
     })
   }
 
@@ -1385,8 +1429,8 @@ class SyncWatcher extends BaseWatcher {
     destinationChainId: number,
     bonderFee: BigNumber
   ): boolean => {
-    const attemptSwap = this.bridge.shouldAttemptSwap(amountOutMin, deadline)
-    if (attemptSwap && isL1ChainId(destinationChainId)) {
+    const attemptSwapDuringBondWithdrawal = this.bridge.shouldAttemptSwapDuringBondWithdrawal(amountOutMin, deadline)
+    if (attemptSwapDuringBondWithdrawal && isL1ChainId(destinationChainId)) {
       return false
     }
 
@@ -1401,7 +1445,9 @@ class SyncWatcher extends BaseWatcher {
   getIsRelayable = (
     relayerFee: BigNumber
   ): boolean => {
-    return relayerFee.gt(0)
+    // TODO: Introduce after integration updates
+    return true
+    // return relayerFee.gt(0)
   }
 
   getIsBlocklisted (addresses: string[]) {
@@ -1446,6 +1492,7 @@ class SyncWatcher extends BaseWatcher {
     if (!this.gasCostPollEnabled) {
       return
     }
+    this.logger.debug(`starting pollGasCost, chainSlug: ${this.chainSlug}`)
     const bridgeContract = this.bridge.bridgeContract.connect(getRpcProvider(this.chainSlug)!) as L1BridgeContract | L2BridgeContract
     const amount = BigNumber.from(10)
     const amountOutMin = BigNumber.from(0)
@@ -1455,6 +1502,8 @@ class SyncWatcher extends BaseWatcher {
     const transferNonce = `0x${'0'.repeat(64)}`
 
     while (true) {
+      const logger = this.logger.create({ id: `${Date.now()}` })
+      logger.debug('pollGasCost poll start')
       try {
         const timestamp = Math.floor(Date.now() / 1000)
         const deadline = Math.floor((Date.now() + OneWeekMs) / 1000)
@@ -1468,7 +1517,9 @@ class SyncWatcher extends BaseWatcher {
           }
         ] as const
         const gasLimit = await bridgeContract.estimateGas.bondWithdrawal(...payload)
+        logger.debug('pollGasCost got estimateGas for bondWithdrawal')
         const tx = await bridgeContract.populateTransaction.bondWithdrawal(...payload)
+        logger.debug('pollGasCost got populateTransaction for bondWithdrawal')
         const estimates = [{ gasLimit, ...tx, transactionType: GasCostTransactionType.BondWithdrawal }]
 
         if (this._isL2BridgeContract(bridgeContract) && bridgeContract.bondWithdrawalAndDistribute) {
@@ -1484,17 +1535,20 @@ class SyncWatcher extends BaseWatcher {
             }
           ] as const
           const gasLimit = await bridgeContract.estimateGas.bondWithdrawalAndDistribute(...payload)
+          logger.debug('pollGasCost got estimateGas for bondWithdrawalAndDistribute')
           const tx = await bridgeContract.populateTransaction.bondWithdrawalAndDistribute(...payload)
+          logger.debug('pollGasCost got populateTransaction for bondWithdrawalAndDistribute')
           estimates.push({ gasLimit, ...tx, transactionType: GasCostTransactionType.BondWithdrawalAndAttemptSwap })
         }
 
         if (RelayableChains.includes(this.chainSlug)) {
-          const relayerFee = new RelayerFee(globalConfig.network)
+          const relayerFee = new RelayerFee(globalConfig.network, this.tokenSymbol)
           const gasCost = await relayerFee.getRelayCost(this.chainSlug)
+          logger.debug('pollGasCost got relayGasCost')
           estimates.push({ gasLimit: gasCost, transactionType: GasCostTransactionType.Relay })
         }
 
-        this.logger.debug('pollGasCost estimate. estimates complete')
+        logger.debug('pollGasCost estimate. estimates complete')
         await Promise.all(estimates.map(async ({ gasLimit, data, to, transactionType }) => {
           const { gasCost, gasCostInToken, gasPrice, tokenPriceUsd, nativeTokenPriceUsd } = await this.bridge.getGasCostEstimation(
             this.chainSlug,
@@ -1505,10 +1559,11 @@ class SyncWatcher extends BaseWatcher {
             to
           )
 
-          this.logger.debug(`pollGasCost estimate. transactionType: ${transactionType}, gasLimit: ${gasLimit?.toString()}, gasPrice: ${gasPrice?.toString()}, gasCost: ${gasCost?.toString()}, gasCostInToken: ${gasCostInToken?.toString()}, tokenPriceUsd: ${tokenPriceUsd?.toString()}`)
+          logger.debug(`pollGasCost got estimate for txPayload. transactionType: ${transactionType}, gasLimit: ${gasLimit?.toString()}, gasPrice: ${gasPrice?.toString()}, gasCost: ${gasCost?.toString()}, gasCostInToken: ${gasCostInToken?.toString()}, tokenPriceUsd: ${tokenPriceUsd?.toString()}`)
           const minBonderFeeAbsolute = await this.bridge.getMinBonderFeeAbsolute(this.tokenSymbol, tokenPriceUsd)
-          this.logger.debug(`pollGasCost estimate. minBonderFeeAbsolute: ${minBonderFeeAbsolute.toString()}`)
+          logger.debug(`pollGasCost got estimate for minBonderFeeAbsolute. minBonderFeeAbsolute: ${minBonderFeeAbsolute.toString()}`)
 
+          logger.debug('pollGasCost attempting to do db update')
           await this.db.gasCost.update({
             chain: this.chainSlug,
             token: this.tokenSymbol,
@@ -1522,10 +1577,12 @@ class SyncWatcher extends BaseWatcher {
             nativeTokenPriceUsd,
             minBonderFeeAbsolute
           })
+          logger.debug('pollGasCost db update completed')
         }))
       } catch (err) {
-        this.logger.error(`pollGasCost error: ${err.message}`)
+        logger.error(`pollGasCost error: ${err.message}`)
       }
+      logger.debug('pollGasCost poll end')
       await wait(this.gasCostPollMs)
     }
   }

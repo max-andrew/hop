@@ -1,8 +1,8 @@
 import BaseDb, { KeyFilter } from './BaseDb'
 import chainIdToSlug from 'src/utils/chainIdToSlug'
 import { BigNumber } from 'ethers'
-import { Chain, OneWeekMs, RelayableChains, TimeFromL1ToL2Ms, TxError } from 'src/constants'
-import { TxRetryDelayMs, nitroStartTimestamp } from 'src/config'
+import { Chain, OneWeekMs, RelayableChains, TxError } from 'src/constants'
+import { TxRetryDelayMs } from 'src/config'
 import { normalizeDbItem } from './utils'
 
 interface BaseTransfer {
@@ -246,8 +246,6 @@ class SubDbRootHashes extends BaseDb {
   }
 }
 
-const arbitrumChainId = 42161
-
 // structure:
 // key: `<transferId>`
 // value: `{ ...Transfer }`
@@ -314,20 +312,6 @@ class TransfersDb extends BaseDb {
   // sort explainer: https://stackoverflow.com/a/9175783/1439168
   private readonly sortItems = (a: any, b: any) => {
     /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-    if (a.transferSentBlockNumber! > b.transferSentBlockNumber!) return 1
-    if (a.transferSentBlockNumber! < b.transferSentBlockNumber!) return -1
-    if (a.transferSentIndex! > b.transferSentIndex!) return 1
-    if (a.transferSentIndex! < b.transferSentIndex!) return -1
-    /* eslint-enable @typescript-eslint/no-unnecessary-type-assertion */
-    return 0
-  }
-
-  private readonly prioritizeSortItems = (a: any, b: any) => {
-    /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-    // place anything that is to Arbitrum at bottom of list
-    if (a.destinationChainId === arbitrumChainId) return 1
-    if (b.destinationChainId === arbitrumChainId) return -1
-
     if (a.transferSentBlockNumber! > b.transferSentBlockNumber!) return 1
     if (a.transferSentBlockNumber! < b.transferSentBlockNumber!) return -1
     if (a.transferSentIndex! > b.transferSentIndex!) return 1
@@ -459,19 +443,12 @@ class TransfersDb extends BaseDb {
       )
     })
 
-    const sorted = isEthToken ? filtered.sort(this.prioritizeSortItems) : filtered
-
-    return sorted as UnbondedSentTransfer[]
+    return filtered as UnbondedSentTransfer[]
   }
 
   async getUnrelayedSentTransfers (
     filter: GetItemsFilter = {}
   ): Promise<UnrelayedSentTransfer[]> {
-    // TODO: Remove this post-nitro
-    if (!nitroStartTimestamp) {
-      return []
-    }
-
     const transfers: Transfer[] = await this.getTransfersFromWeek()
     const filtered = transfers.filter(item => {
       if (!item?.transferId) {
@@ -502,11 +479,6 @@ class TransfersDb extends BaseDb {
         return false
       }
 
-      // TODO: Remove this one week post-nitro
-      if (item.transferSentTimestamp && item.transferSentTimestamp < nitroStartTimestamp) {
-        return false
-      }
-
       let timestampOk = true
       if (item.relayAttemptedAt) {
         if (TxError.RelayerFeeTooLow === item.relayTxError) {
@@ -523,9 +495,6 @@ class TransfersDb extends BaseDb {
         }
       }
 
-      const seenOnL1TimestampMs: number = item.transferSentTimestamp * 1000
-      const seenOnL1TimestampOk = seenOnL1TimestampMs + TimeFromL1ToL2Ms[item.destinationChainSlug] < Date.now()
-
       return (
         item.transferId &&
         item.transferSentTimestamp &&
@@ -536,8 +505,7 @@ class TransfersDb extends BaseDb {
         !item.transferFromL1Complete &&
         item.transferSentLogIndex &&
         item.transferSentTimestamp &&
-        timestampOk &&
-        seenOnL1TimestampOk
+        timestampOk
       )
     })
 

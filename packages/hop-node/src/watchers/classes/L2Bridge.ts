@@ -287,9 +287,15 @@ export default class L2Bridge extends Bridge {
     if (contractAddress) {
       contract = contract.attach(contractAddress)
     }
+
+    const txOverrides = await this.txOverrides()
+    if (this.chainSlug === Chain.Polygon) {
+      const gasLimit = 15_000_000
+      txOverrides.gasLimit = gasLimit
+    }
     const tx = await contract.commitTransfers(
       destinationChainId,
-      await this.txOverrides()
+      txOverrides
     )
 
     return tx
@@ -308,7 +314,7 @@ export default class L2Bridge extends Bridge {
     // Define a max gasLimit in order to avoid gas siphoning
     let gasLimit = 500_000
     if (this.chainSlug === Chain.Arbitrum) {
-      gasLimit = 2_000_000
+      gasLimit = 10_000_000
     }
     txOverrides.gasLimit = gasLimit
 

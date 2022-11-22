@@ -3,11 +3,11 @@ import { Config } from './types'
 export const config : Config = {
   bonderFeeBps: {
     USDC: {
-      ethereum: 14,
-      polygon: 14,
-      gnosis: 25,
-      optimism: 14,
-      arbitrum: 14
+      ethereum: 10,
+      polygon: 10,
+      gnosis: 10,
+      optimism: 10,
+      arbitrum: 10
     },
     USDT: {
       ethereum: 26,
@@ -43,7 +43,27 @@ export const config : Config = {
       gnosis: 25,
       optimism: 23,
       arbitrum: 23
+    },
+    HOP: {
+      ethereum: 10,
+      polygon: 10,
+      gnosis: 20,
+      optimism: 10,
+      arbitrum: 10
+    },
+    SNX: {
+      ethereum: 20
+    },
+    // TODO
+    sUSD: {
+      ethereum: 20
     }
   },
-  destinationFeeGasPriceMultiplier: 1.2
+  destinationFeeGasPriceMultiplier: 1.2,
+  relayerFeeEnabled: {
+    polygon: false,
+    gnosis: false,
+    optimism: false,
+    arbitrum: false
+  }
 }

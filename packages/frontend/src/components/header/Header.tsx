@@ -8,7 +8,7 @@ import HeaderRoutes from 'src/components/header/HeaderRoutes'
 import TxPill from 'src/components/header/TxPill'
 import HopLogoBlack from 'src/assets/logos/hop-logo-black.svg'
 import HopLogoWhite from 'src/assets/logos/hop-logo-white.svg'
-import { isMainnet } from 'src/config'
+import { isMainnet, showBannerMessage } from 'src/config'
 import { l1Network } from 'src/config/networks'
 import Settings from 'src/components/header/Settings'
 import WalletWarning from './WalletWarning'
@@ -28,6 +28,7 @@ import SunIcon from 'src/assets/sun-icon.svg'
 import MoonIcon from 'src/assets/moon-icon.svg'
 import { Flex, Icon } from '../ui'
 import { useThemeMode } from 'src/theme/ThemeProvider'
+import Banner from 'src/components/Banner'
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -57,7 +58,7 @@ const useStyles = makeStyles((theme: Theme) => ({
   label: {
     fontSize: '1rem',
     position: 'absolute',
-    bottom: '-0.2rem',
+    bottom: '-1rem',
     right: '0',
     opacity: '0.2',
   },
@@ -144,9 +145,12 @@ const Header: FC = () => {
 
   return (
     <>
+      {showBannerMessage && (
+        <Banner>{showBannerMessage}</Banner>
+      )}
       <Box className={styles.root} display="flex" flexDirection="row" alignItems="center">
         <Box display="flex" flexDirection="row" justifyContent="flex-start" flex={1}>
-          <Link to="/">
+          <Link to="/" style={{ position: 'relative' }}>
             <img
               className={styles.hopLogo}
               src={isDarkMode ? HopLogoWhite : HopLogoBlack}

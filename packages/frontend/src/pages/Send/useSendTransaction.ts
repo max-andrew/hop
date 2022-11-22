@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { BigNumber, constants, Signer } from 'ethers'
+import { BigNumber, Signer } from 'ethers'
 import { getAddress } from 'ethers/lib/utils'
 import { useWeb3Context } from 'src/contexts/Web3Context'
 import logger from 'src/logger'
@@ -17,11 +17,11 @@ export type TransactionHandled = {
 }
 
 function handleTransaction(
-  tx,
-  fromNetwork,
-  toNetwork,
-  sourceToken,
-  addTransaction
+  tx: any,
+  fromNetwork: any,
+  toNetwork: any,
+  sourceToken: any,
+  addTransaction: any
 ): TransactionHandled {
   const txModel = createTransaction(tx, fromNetwork, toNetwork, sourceToken)
   addTransaction(txModel)
@@ -32,7 +32,7 @@ function handleTransaction(
   }
 }
 
-export function useSendTransaction(props) {
+export function useSendTransaction (props: any) {
   const {
     amountOutMin,
     customRecipient,
@@ -100,7 +100,9 @@ export function useSendTransaction(props) {
 
       const networkId = Number(fromNetwork.networkId)
       const isNetworkConnected = await checkConnectedNetworkId(networkId)
-      if (!isNetworkConnected) return
+      if (!isNetworkConnected) {
+        throw new Error('wrong network connected')
+      }
 
       try {
         if (customRecipient) {
@@ -143,7 +145,7 @@ export function useSendTransaction(props) {
       )
 
       if (watcher instanceof EventEmitter) {
-        watcher.once(sdk.Event.DestinationTxReceipt, async data => {
+        watcher.once(sdk.Event.DestinationTxReceipt, async (data: any) => {
           logger.debug(`dest tx receipt event data:`, data)
           if (txModel && !txModel.destTxHash) {
             const opts = {
@@ -176,7 +178,7 @@ export function useSendTransaction(props) {
           fromNetwork.slug,
           toNetwork.slug
         )
-        replacementWatcher.once(sdk.Event.DestinationTxReceipt, async data => {
+        replacementWatcher.once(sdk.Event.DestinationTxReceipt, async (data: any) => {
           logger.debug(`replacement dest tx receipt event data:`, data)
           if (txModelReplacement && !txModelReplacement.destTxHash) {
             const opts = {
@@ -218,7 +220,9 @@ export function useSendTransaction(props) {
 
         const networkId = Number(fromNetwork.networkId)
         const isNetworkConnected = await checkConnectedNetworkId(networkId)
-        if (!isNetworkConnected) return
+        if (!isNetworkConnected) {
+          throw new Error('wrong network connected')
+        }
 
         const relayerFeeWithId = getBonderFeeWithId(totalFee)
 
@@ -226,7 +230,7 @@ export function useSendTransaction(props) {
           deadline: deadline(),
           relayerFee: relayerFeeWithId,
           recipient,
-          amountOutMin,
+          amountOutMin: amountOutMin.sub(relayerFeeWithId),
         })
       },
     })
@@ -258,7 +262,9 @@ export function useSendTransaction(props) {
 
         const networkId = Number(fromNetwork.networkId)
         const isNetworkConnected = await checkConnectedNetworkId(networkId)
-        if (!isNetworkConnected) return
+        if (!isNetworkConnected) {
+          throw new Error('wrong network connected')
+        }
 
         const bonderFeeWithId = getBonderFeeWithId(totalFee)
 
@@ -300,7 +306,9 @@ export function useSendTransaction(props) {
 
         const networkId = Number(fromNetwork.networkId)
         const isNetworkConnected = await checkConnectedNetworkId(networkId)
-        if (!isNetworkConnected) return
+        if (!isNetworkConnected) {
+          throw new Error('wrong network connected')
+        }
 
         const bonderFeeWithId = getBonderFeeWithId(totalFee)
 
