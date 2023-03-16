@@ -11,10 +11,10 @@ import {
   getConfigBonderForRoute,
   getEnabledNetworks,
   config as globalConfig,
+  modifiedLiquidityDecrease,
   modifiedLiquidityDestChains,
   modifiedLiquiditySourceChains,
   modifiedLiquidityTokens,
-  modifiedLiquidityDecrease,
   oruChains
 } from 'src/config'
 
