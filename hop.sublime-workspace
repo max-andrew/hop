@@ -1,0 +1,772 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"is",
+				"isUserConfiguring"
+			],
+			[
+				"set",
+				"setIsUserConfiguring"
+			],
+			[
+				"outlets",
+				"selectedOutlets"
+			],
+			[
+				"outlet",
+				"outletSelectors"
+			],
+			[
+				"space-",
+				"space-y-12"
+			],
+			[
+				"Conf",
+				"ConfigScreen"
+			],
+			[
+				"Feed",
+				"FeedScreen"
+			],
+			[
+				"show",
+				"showConfig"
+			],
+			[
+				"shuff",
+				"shuffled_feed_keys"
+			],
+			[
+				"shuffle",
+				"shuffled_feed_keys"
+			],
+			[
+				"feed",
+				"feedInProgress"
+			],
+			[
+				"fee",
+				"feedInProgress"
+			],
+			[
+				"sou",
+				"sound_file_name"
+			],
+			[
+				"FEE",
+				"feedInProgress"
+			],
+			[
+				"fe",
+				"feedInProgress"
+			],
+			[
+				"artic",
+				"article_index"
+			],
+			[
+				"articles",
+				"maxArticlesPerOutlet"
+			],
+			[
+				"head",
+				"headlinesPerPage"
+			],
+			[
+				"feed_",
+				"feed_keys"
+			],
+			[
+				"sele",
+				"selected_outlet"
+			],
+			[
+				"curre",
+				"currentPage"
+			],
+			[
+				"cur",
+				"currentPage"
+			],
+			[
+				"curren",
+				"currentPage"
+			],
+			[
+				"CURREN",
+				"currentPage"
+			],
+			[
+				"fade",
+				"fadeIn"
+			],
+			[
+				"Curr",
+				"currencyType"
+			],
+			[
+				"collec",
+				"collectionID"
+			],
+			[
+				"ser",
+				"serialNumber"
+			],
+			[
+				"d",
+				"flexDirection"
+			],
+			[
+				"ac",
+				"activity"
+			],
+			[
+				"has",
+				"hasFilters"
+			],
+			[
+				"col",
+				"collectionMarketplace"
+			],
+			[
+				"getF",
+				"getFullImageCloudinaryURL"
+			],
+			[
+				"font-",
+				"font-bold"
+			],
+			[
+				"netw",
+				"networkDefaults"
+			],
+			[
+				"OP",
+				"OPTIMISM_KOVAN_CHAIN_ID"
+			],
+			[
+				"wallet",
+				"walletconnect"
+			],
+			[
+				"use",
+				"useActivatingConnector"
+			],
+			[
+				"right",
+				"rightokenAddress"
+			],
+			[
+				"I",
+				"INonfungiblePositionManager"
+			],
+			[
+				"networ",
+				"networkDefaults"
+			],
+			[
+				"space",
+				"space-y-9"
+			],
+			[
+				"max",
+				"max-w-xs"
+			],
+			[
+				"cu",
+				"currentStepInSessionStorage"
+			],
+			[
+				"art",
+				"artistName"
+			],
+			[
+				"su",
+				"successCondition"
+			],
+			[
+				"succes",
+				"successCondition"
+			],
+			[
+				"trie",
+				"triedEager"
+			],
+			[
+				"text",
+				"text-center"
+			],
+			[
+				"user",
+				"userPrompts"
+			],
+			[
+				"font-m",
+				"font-medium"
+			],
+			[
+				"just",
+				"justify-self-start"
+			],
+			[
+				"acce",
+				"acceptableTestNetworks"
+			],
+			[
+				"cr",
+				"cryptoPro"
+			],
+			[
+				"song",
+				"songTitle"
+			],
+			[
+				"resea",
+				"resaleRoyaltyPercent"
+			],
+			[
+				"legal",
+				"legalAgreement"
+			],
+			[
+				"lega",
+				"legalAgreementLibrary"
+			],
+			[
+				"sect",
+				"sectionsIncluded"
+			],
+			[
+				"spac",
+				"space-y-2"
+			],
+			[
+				"term",
+				"termCustomization"
+			],
+			[
+				"reset",
+				"resetFormValues"
+			],
+			[
+				"aud",
+				"audioFileError"
+			],
+			[
+				"artist",
+				"artistNameError"
+			],
+			[
+				"setau",
+				"setAudioFileNameError"
+			],
+			[
+				"setSong",
+				"setSongTitleError"
+			],
+			[
+				"a",
+				"audioFileName"
+			],
+			[
+				"place",
+				"place-items-center"
+			],
+			[
+				"te",
+				"text-sm"
+			],
+			[
+				"wa",
+				"walletAppSelected"
+			],
+			[
+				"Right",
+				"rightokenBalance"
+			],
+			[
+				"mati",
+				"maticProvider"
+			],
+			[
+				"We",
+				"Web3Provider"
+			],
+			[
+				"Web",
+				"Web3DebugPanel"
+			],
+			[
+				"getE",
+				"getConnectedWalletApp"
+			],
+			[
+				"get",
+				"getConnectedWalletApp"
+			],
+			[
+				"connec",
+				"connectWallet"
+			],
+			[
+				"connect",
+				"connectWallet"
+			],
+			[
+				"wal",
+				"walletAppSelected"
+			],
+			[
+				"font",
+				"font-semibold"
+			],
+			[
+				"wall",
+				"walletAppSelected"
+			],
+			[
+				"conn",
+				"connectWallet"
+			],
+			[
+				"acti",
+				"activatingConnector"
+			],
+			[
+				"t",
+				"text-sm"
+			],
+			[
+				"justi",
+				"justify-self-end"
+			],
+			[
+				"pla",
+				"place-self-center"
+			],
+			[
+				"bg",
+				"bg-gray-100"
+			],
+			[
+				"Logo",
+				"rightoken-logo"
+			],
+			[
+				"jso",
+				"jsonContent"
+			],
+			[
+				"code",
+				"code_request"
+			],
+			[
+				"Mee",
+				"MeetTheTeamSlide"
+			],
+			[
+				"backgrou",
+				"backgroundSize"
+			],
+			[
+				"NO",
+				"NogrammerButton"
+			],
+			[
+				"Georg",
+				"GeorgeEdwardsImage"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"contents": "Searching 3 files for \"my liquidity\" (regex)\n\n<untitled 208>:\n    ERROR: Unable to open file\n\n0 matches",
+			"settings":
+			{
+				"buffer_size": 103,
+				"line_ending": "Unix",
+				"name": "Find Results",
+				"scratch": true
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"remove",
+				"Package Control: Remove Package"
+			],
+			[
+				"pack",
+				"Package Control: Install Package"
+			],
+			[
+				"Package Control: ",
+				"Package Control: Remove Package"
+			],
+			[
+				"upda",
+				"Package Control: Upgrade Package"
+			],
+			[
+				"package",
+				"Preferences: Package Control Settings"
+			],
+			[
+				"Package Control Setting",
+				"Preferences: Package Control Settings"
+			],
+			[
+				"pac",
+				"Package Control: Install Package"
+			],
+			[
+				"brows",
+				"Preferences: Browse Packages"
+			]
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/Users/maxandrew/Sandbox/hop"
+	],
+	"file_history":
+	[
+		"/Users/maxandrew/Sandbox/hop/packages/frontend/src/pages/Pools/PoolDetails/useStyles.tsx",
+		"/Users/maxandrew/Sandbox/hop/packages/frontend/src/pages/Pools/PoolDetails/PoolDetails.tsx",
+		"/Users/maxandrew/Sandbox/hop/packages/frontend/src/pages/Pools/usePoolStats.ts",
+		"/Users/maxandrew/Sandbox/portfolio/app/page.tsx",
+		"/Users/maxandrew/Sandbox/briefly/components/HeadlineBlock.js",
+		"/Users/maxandrew/Sandbox/portfolio/tailwind.config.js",
+		"/Users/maxandrew/Sandbox/briefly/package.json",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Carestaker/Hop/Airdrop recipient reachout",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Carestaker/Hop/[RFC] Reopen HOP airdrop window",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Self/Jobs/Personal site",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Carestaker/Hop/Hop Grants Program",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Carestaker/Hop/Rebalancer proposal",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Carestaker/Hop/Community call Feb 22",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Carestaker/Hop/Filecoin rollup proposal",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Carestaker/Hop/Uniswap liquidity deployment",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Substack/Layoffs and our deal with the devil",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Carestaker/Hop/HIP-20",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Nogrammer/Open source discount",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Rightoken/Cause of death",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Carestaker/Hop/Multiple ambassadors reasoning",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Carestaker/Hop Grants Program",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Carestaker/Hop/sUSD Vote",
+		"/Users/maxandrew/Downloads/blob.csv",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/StoryArc/Arc/Past/Saybrook/saybrook/index.html",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Arc/Subprojects/Saybrook/Site/saybrook/index.html",
+		"/Users/maxandrew/Sandbox/aeolin/App.js",
+		"/Users/maxandrew/Sandbox/aeolin/app.json",
+		"/Users/maxandrew/Sandbox/briefly-old/App.js",
+		"/Users/maxandrew/Sandbox/briefly/functions/getStandardDate.js",
+		"/Users/maxandrew/Sandbox/briefly/data/outlet_library.js",
+		"/Users/maxandrew/Sandbox/Briefly todo",
+		"/Users/maxandrew/Sandbox/briefly/App.js",
+		"/Users/maxandrew/Sandbox/briefly/node_modules/react-native-xml2js/lib/xml2js.js",
+		"/Users/maxandrew/Sandbox/briefly/tailwind.config.js",
+		"/Users/maxandrew/Sandbox/briefly/app.json",
+		"/Users/maxandrew/Sandbox/briefly/babel.config.js",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/Self/Social links",
+		"/Users/maxandrew/Library/Application Support/Sublime Text 3/Packages/User/Package Control.user-ca-bundle",
+		"/Users/maxandrew/Sandbox/gaia-mp-event-streamer-v2/src/stream/event-stream.ts",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/NFT Genius/10:11",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/.env",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/.eslintignore",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/header.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/.main-env",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/profile/components/account-history-card/index.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/helpers/gaia-helpers.ts",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/relative-time.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/profile/account-activity.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/profile/components/account-history-card/account-history-card-text.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/modals/nft-actions/nft-action-modal.tsx",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/NFT Genius/9:27",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/descriptors/nft.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/pages/class/edition-detail/index.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/generated/graphql-types.ts",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/tsconfig.json",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/pages/[collection]/real-time.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/pages/[collection]/collection.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/icons/real-time.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/.husky/pre-commit",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/.git/hooks/husky.sh",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/.git/hooks/pre-commit",
+		"/Users/maxandrew/Library/Mobile Documents/com~apple~CloudDocs/Documents/NFT Genius/.test-env",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/helpers/media-helpers.ts",
+		"/Users/maxandrew/.Trash/nft.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/pages/_app.tsx",
+		"/Users/maxandrew/.Trash/account-activity.tsx",
+		"/Users/maxandrew/.Trash/nft-collection.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/providers/bulk-list-provider.tsx",
+		"/Users/maxandrew/.Trash/account-collection.tsx",
+		"/Users/maxandrew/.Trash/media-helpers.js",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/buttons/bulk-add-button.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/marketplace/cards/nft-card/nft-card-overlays.tsx",
+		"/Users/maxandrew/.Trash/edition-collection.tsx",
+		"/Users/maxandrew/.Trash/currency-badge.jsx",
+		"/Users/maxandrew/.Trash/collection-tabs.jsx",
+		"/Users/maxandrew/.Trash/index.jsx 07-25-35-157.jsx",
+		"/Users/maxandrew/.Trash/collection-card.jsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/marketplace/cards/edition-card/edition-marketplace-info.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/marketplace/cards/nft-card/index.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/focus-link.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/marketplace/cards/card-container.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/buttons/like-button.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/marketplace/cards/card-details/card-price.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/marketplace/cards/nft-card/nft-marketplace-info.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/.test-env",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/helpers/string-helpers.ts",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/marketplace/cards/card-media.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/pages/[collection]/index.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/pages/[collection]/[classOrId]/[id].tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/pages/collection/collection-page/index.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/pages/collection/collection-page/collection-tabs.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/marketplace/cards/edition-card/index.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/pages/[collection]/[classOrId]/index.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/pages/account/[address].tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/pages/account/account.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/pages/account/[address]/favorites.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/modals/bulk-nft-actions/create-listings-modal-content/index.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/api/queries/get-marketplace-floor-price.ts",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/api/queries/get-marketplace-edition-floor-prices.ts",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/icons/real-time/ListedIcon.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/icons/real-time/PurchasedIcon.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/icons/real-time/RemovedIcon.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/icons/real-time/SoldIcon.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/pages/account/[address]/activity.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/models/firestore/fs-marketplace-activity.ts",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/models/firestore/fs-marketplace-purchase.ts",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/models/firestore/fs-marketplace-listing.ts",
+		"/Users/maxandrew/Sandbox/rightoken/pages/fan.js",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/pages/[collection]/edition/[id].tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/marketplace/cards/card-details/marketplace-info.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/helpers/image-helpers.ts",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/pages/[collection]/nft/[id].tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/pages/collection/real-time/real-time-card/index.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/modals/bulk-nft-actions/create-listings-modal-content/initial/bulk-list/index.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/modals/bulk-nft-actions/series-image.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/modals/modal-container-new.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/about/index.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/marketplace/media-gallery.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/bulk-list-drawer/bulk-listing/bulk-list-item.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/marketplace/filters/hooks/use-filter-url-sync.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/api/models/marketplace-media.ts",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/next.config.js",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/marketplace/hooks/use-marketplace-url-sync.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/pages/collection/edition-collection.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/package.json",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/pages/collection/nft-collection.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/marketplace/cards/card-details/card-details-header.tsx",
+		"/Users/maxandrew/Sandbox/gaia-mp-frontend/src/components/modals/nft-actions/sell-nft-modal/index.tsx"
+	],
+	"find":
+	{
+		"height": 26.0
+	},
+	"find_in_files":
+	{
+		"height": 134.0,
+		"where_history":
+		[
+			"<project>,<current file>,<open files>,<open folders>,-*.doc,*.txt"
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"my liquidity"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": true,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"scrollbar_highlights": true,
+		"show_context": true,
+		"use_buffer2": true,
+		"use_gitignore": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"folders":
+	[
+		{
+			"path": "/Users/maxandrew/Sandbox/hop"
+		}
+	],
+	"groups":
+	[
+		{
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"selected": true,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 103,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"detect_indentation": false,
+							"line_numbers": false,
+							"output_tag": 1,
+							"result_base_dir": "",
+							"result_file_regex": "^([^ \t].*):$",
+							"result_line_regex": "^ +([0-9]+):",
+							"scroll_past_end": true,
+							"syntax": "Packages/Default/Find Results.hidden-tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"stack_multiselect": false,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 26.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "",
+	"replace":
+	{
+		"height": 48.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 191.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"",
+				"formatCurrency"
+			],
+			[
+				"formatCurrency",
+				"formatCurrency"
+			]
+		],
+		"width": 580.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": false,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": false,
+	"side_bar_width": 150.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

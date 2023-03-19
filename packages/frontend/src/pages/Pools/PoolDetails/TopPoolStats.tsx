@@ -1,10 +1,11 @@
 import React, { ChangeEvent } from 'react'
 import Box from '@material-ui/core/Box'
 import ErrorIcon from '@material-ui/icons/ErrorOutline'
-import ShowChartIcon from '@material-ui/icons/ShowChart'
+import ShowChartRoundedIcon from '@material-ui/icons/ShowChartRounded'
 import InfoTooltip from 'src/components/InfoTooltip'
 import Typography from '@material-ui/core/Typography'
 import { useStyles } from './useStyles'
+import { usePool } from '../PoolsContext'
 
 type Props = {
   aprFormatted: string
@@ -25,6 +26,9 @@ export function TopPoolStats (props: Props) {
     tvlFormatted,
     volume24hFormatted,
   } = props
+  const {
+    addLiquidityAndStake,
+  } = usePool()
 
   function handleStakeClick (event: ChangeEvent<{}>) {
     event.preventDefault()
@@ -34,6 +38,7 @@ export function TopPoolStats (props: Props) {
   function handleRebalanceClick (event: ChangeEvent<{}>) {
     event.preventDefault()
     console.log("hello")
+    addLiquidityAndStake()
   }
 
   return (
@@ -94,6 +99,23 @@ export function TopPoolStats (props: Props) {
               </Box>
             </Box>
           )}
+        </Box>
+        <Box ml={2} p={2} display="flex" flexDirection="column" justifyContent="center" className={styles.notStakedMessage + ' ' + styles.topBox} onClick={handleRebalanceClick}>
+          <Box mb={1}>
+            <Typography variant="body2" component="div">
+              <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" className={styles.notStakedMessageColor}>
+                <Box mr={0.5} display="flex" justifyContent="center" alignItems="center">
+                  <ShowChartRoundedIcon className={styles.notStakedMessageColor} style={{ fontSize: '2.5rem' }}/>
+                </Box>
+                <strong>Get higher APR</strong>
+              </Box>
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="body2" component="div">
+              <strong>Move your position to a higher yield network here</strong>
+            </Typography>
+          </Box>
         </Box>
       </Box>
   )
