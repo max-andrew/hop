@@ -15,9 +15,6 @@ import UnwrapToken from 'src/components/txConfirm/UnwrapToken'
 import WithdrawReview from 'src/components/txConfirm/WithdrawReview'
 import { ApproveAndStake } from 'src/components/txConfirm/ApproveAndStake'
 import { useApp } from 'src/contexts/AppContext'
-import Divider from '@material-ui/core/Divider'
-import { Text } from 'src/components/ui/Text'
-import Typography from '@material-ui/core/Typography'
 
 const TxConfirm: FC = props => {
   const { txConfirm } = useApp()
@@ -54,40 +51,8 @@ const TxConfirm: FC = props => {
     }
   }
 
-  const isRebalancing = true
-
-  function TransactionModalHeader(props) {
-    const headerTitle = props.headerTitle
-    let headerTitleJSX = <></>
-
-    if (typeof headerTitle !== "undefined") {
-      headerTitleJSX = (
-        <>
-          <br />
-          <Text mono style={{ fontSize: 12, marginBottom: 12, textTransform: "uppercase" }}>{headerTitle}</Text>
-        </>
-      )
-    }
-
-    const currentStep = 1
-    const totalSteps = 5
-
-    return (
-      <>
-        <span style={{ textAlign: "center" }}>
-          {headerTitleJSX}
-          <Typography variant="h6" color="textSecondary">Step {currentStep}/{totalSteps}</Typography>
-          <br />
-        </span>
-        <Divider />
-        <br />
-      </>
-    )
-  }
-
   return (
     <Modal onClose={handleClose}>
-      { isRebalancing && <TransactionModalHeader headerTitle="Rebalancing staked position" /> }
       <Component onConfirm={onConfirm} {...inputProps} />
     </Modal>
   )
