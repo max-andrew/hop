@@ -10,7 +10,6 @@ import bgImageDark from 'src/assets/circles-bg-dark.svg'
 import { useThemeMode } from './theme/ThemeProvider'
 import styled from 'styled-components'
 import { Flex } from './components/ui'
-import { RebalanceModal } from 'src/components/modal/RebalanceModal'
 
 const AppWrapper = styled(Flex)<any>`
   align-items: stretch;
@@ -30,7 +29,6 @@ function App() {
       <AccountDetails />
       <AppRoutes />
       <TxConfirm />
-      <RebalanceModal />
       <Footer />
     </AppWrapper>
   )

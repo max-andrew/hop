@@ -5,7 +5,6 @@ import ShowChartRoundedIcon from '@material-ui/icons/ShowChartRounded'
 import InfoTooltip from 'src/components/InfoTooltip'
 import Typography from '@material-ui/core/Typography'
 import { useStyles } from './useStyles'
-import { usePool } from '../PoolsContext'
 
 type Props = {
   aprFormatted: string
@@ -14,6 +13,7 @@ type Props = {
   totalAprFormatted: string
   tvlFormatted: string
   volume24hFormatted: string
+  setShowRebalanceModal: (showRebalanceModal: boolean) => void
 }
 
 export function TopPoolStats (props: Props) {
@@ -25,10 +25,8 @@ export function TopPoolStats (props: Props) {
     totalAprFormatted,
     tvlFormatted,
     volume24hFormatted,
+    setShowRebalanceModal,
   } = props
-  const {
-    addLiquidityAndStake,
-  } = usePool()
 
   function handleStakeClick (event: ChangeEvent<{}>) {
     event.preventDefault()
@@ -37,8 +35,7 @@ export function TopPoolStats (props: Props) {
 
   function handleRebalanceClick (event: ChangeEvent<{}>) {
     event.preventDefault()
-    console.log("hello")
-    addLiquidityAndStake()
+    props.setShowRebalanceModal(true)
   }
 
   return (
