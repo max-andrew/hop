@@ -5,7 +5,9 @@ import { Text } from 'src/components/ui/Text'
 import Card from '@material-ui/core/Card'
 import { makeStyles, Theme } from '@material-ui/core/styles'
 import { isDarkMode } from 'src/theme/theme'
+import { ethers } from 'ethers'
 import { useWeb3Context } from 'src/contexts/Web3Context'
+import stakingRewardsAbi from '@hop-protocol/core/abi/static/StakingRewards.json'
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -72,7 +74,7 @@ function RebalanceModalFooter(props) {
 
 export function RebalanceModal(props) {
   const styles = useStyles()
-  const { address, walletName } = useWeb3Context()
+  const { address, provider } = useWeb3Context()
 
   const [addressString, setAddressString] = useState("")
 
@@ -82,8 +84,18 @@ export function RebalanceModal(props) {
       }
   }, [address])
 
-  function exitPosition() {
-    console.log("exiting")
+  function exitPosition(provider) {
+    const signer = provider?.getSigner()
+    const contractAbi = stakingRewardsAbi
+
+    // Create an instance of the contract
+    const contractAddress = "0x9142C0C1b0ea0008B0b6734E1688c8355FB93b62"
+    const contract = new ethers.Contract(contractAddress, contractAbi, signer)
+
+    // Call the function on the contract instance
+    contract.exit()
+      .then((balance) => console.log(`success`))
+      .catch(error => console.log(error))
   }
 
   if (props.showRebalanceModal) {
@@ -92,7 +104,7 @@ export function RebalanceModal(props) {
         <Card className="styles.card">
           <RebalanceModalHeader headerTitle="Rebalance staked position" />
           <p>{addressString}</p>
-          <button onClick={() => exitPosition()}>Withdraw Arbitrum position</button>
+          <button onClick={() => exitPosition(provider)}>Withdraw Arbitrum position</button>
           <button onClick={() => props.setShowRebalanceModal(false)}>Close</button>
           <RebalanceModalFooter />
         </Card>
