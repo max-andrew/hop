@@ -1,10 +1,11 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Modal from 'src/components/modal/Modal'
 import Divider from '@material-ui/core/Divider'
 import { Text } from 'src/components/ui/Text'
 import Card from '@material-ui/core/Card'
 import { makeStyles, Theme } from '@material-ui/core/styles'
 import { isDarkMode } from 'src/theme/theme'
+import { useWeb3Context } from 'src/contexts/Web3Context'
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -71,6 +72,15 @@ function RebalanceModalFooter(props) {
 
 export function RebalanceModal(props) {
   const styles = useStyles()
+  const { address, walletName } = useWeb3Context()
+
+  const [addressString, setAddressString] = useState("")
+
+  useEffect(() => {
+      if (typeof address?.address !== "undefined") {
+        setAddressString(address.address)
+      }
+  }, [address])
 
   function exitPosition() {
     console.log("exiting")
@@ -81,7 +91,7 @@ export function RebalanceModal(props) {
       <div className="styles.root">
         <Card className="styles.card">
           <RebalanceModalHeader headerTitle="Rebalance staked position" />
-          <p>Hello</p>
+          <p>{addressString}</p>
           <button onClick={() => exitPosition()}>Withdraw Arbitrum position</button>
           <button onClick={() => props.setShowRebalanceModal(false)}>Close</button>
           <RebalanceModalFooter />
