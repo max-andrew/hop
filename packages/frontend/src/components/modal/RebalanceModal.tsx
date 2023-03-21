@@ -8,6 +8,7 @@ import { isDarkMode } from 'src/theme/theme'
 import { ethers } from 'ethers'
 import { useWeb3Context } from 'src/contexts/Web3Context'
 import stakingRewardsAbi from '@hop-protocol/core/abi/static/StakingRewards.json'
+import saddleSwapAbi from '@hop-protocol/core/abi/generated/Swap.json'
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -84,7 +85,7 @@ export function RebalanceModal(props) {
       }
   }, [address])
 
-  function exitPosition(provider) {
+  function unstakePosition(provider) {
     const signer = provider?.getSigner()
     const contractAbi = stakingRewardsAbi
 
@@ -98,13 +99,35 @@ export function RebalanceModal(props) {
       .catch(error => console.log(error))
   }
 
+  function withdrawPosition(provider) {
+    const signer = provider?.getSigner()
+    const contractAbi = saddleSwapAbi
+
+    // Create an instance of the contract
+    const contractAddress = "0x69a71b7F6Ff088a0310b4f911b4f9eA11e2E9740"
+    const contract = new ethers.Contract(contractAddress, contractAbi, signer)
+
+    const amount = 100
+
+    const minAmounts = 10
+
+    const time = Math.floor(Date.now() / 1000) + 200000
+    const deadline = ethers.BigNumber.from(time)
+
+    // Call the function on the contract instance
+    contract.removeLiquidity(amount, minAmounts, deadline)
+      .then((balance) => console.log(`success`))
+      .catch(error => console.log(error))
+  }
+
   if (props.showRebalanceModal) {
     return (
       <div className="styles.root">
         <Card className="styles.card">
           <RebalanceModalHeader headerTitle="Rebalance staked position" />
           <p>{addressString}</p>
-          <button onClick={() => exitPosition(provider)}>Withdraw Arbitrum position</button>
+          <button onClick={() => unstakePosition(provider)}>Unstake Arbitrum position</button>
+          <button onClick={() => withdrawPosition(provider)}>Withdraw Arbitrum position</button>
           <button onClick={() => props.setShowRebalanceModal(false)}>Close</button>
           <RebalanceModalFooter />
         </Card>
