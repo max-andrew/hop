@@ -89,7 +89,7 @@ export function RebalanceModal(props) {
 
   const signer = provider?.getSigner()
 
-  const [positionERC20Balance, setPositionERC20Balance] = useState("")
+  const [erc20PositionBalance, setERC20PositionBalance] = useState()
 
   const maxAmount = BigNumber.from(2).pow(256).sub(1)
   const deadline = 26821122300
@@ -103,52 +103,66 @@ export function RebalanceModal(props) {
     const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
 
     // approve LP token spending
+    /*
+    const lpTokenContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleLpToken
+
     try {
-      const approveTx = await approveLPTokenFor(stakingContractAddress)
-      await approveTx.wait()
-      console.log("Approved successfully")
+      const approveTx = await approveToken(lpTokenContractAddress, stakingContractAddress, maxAmount)
     } catch (error) {
-      console.log(error)
+      console.error(error)
       return
     }
+    */
 
-    // stake LP tokens
+    // unstake LP tokens
     try {
       const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
       const stakeTx = await stakingContract.exit({ gasLimit: gasLimit * 2 })
-      stakeTx.wait()
+      await stakeTx.wait()
         .then(() => console.log("Unstaked successfully"))
-        .catch(error => console.log(error))
+        .catch(error => console.error(error))
     } catch (error) {
-      console.log(error)
+      console.error(error)
     }
   }
 
-  function withdrawPosition() {
-    const saddleSwapAddress = "0xa50395bdEaca7062255109fedE012eFE63d6D402"
+  async function withdrawPosition() {
+    const chainSlug = selectedNetwork?.slug ?? ""
+    const tokenSymbol = selectedBridge?.getTokenSymbol() ?? ""
 
-    approveLPTokenFor(saddleSwapAddress)
-      .then(() => {
-        const lpTokenContractAddress = "0x2105a73d7739f1034becc1bd87f4f7820d575644"
-        const balanceOfAbi = ["function balanceOf(address account) view returns (uint256)"]
-        const lpTokenContract = new ethers.Contract(lpTokenContractAddress, balanceOfAbi, signer)
-        
-        // get balance of LP token
-        lpTokenContract.balanceOf("0xfEF19d3BB4575F69bff2b74D20d9155e67Ebe777")
-          .then((balance) => {
-            console.log("Token balance:", balance.toString())
-            removeLiquidityOneToken(balance.toString())
-            setPositionERC20Balance(balance.toString())
-          })
-          .catch(error => console.log(error))
-      })
-      .catch(error => console.log(error))
+    const lpTokenContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleLpToken
+    const saddleSwapContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleSwap
 
-    function removeLiquidityOneToken(balance: string) {
-      const amount: BigNumber = BigNumber.from(balance.toString())
-      const minAmount = amount.mul(95).div(100).toString()
+    const balanceOfAbi = ["function balanceOf(address account) view returns (uint256)"]
+    const lpTokenContract = new ethers.Contract(lpTokenContractAddress, balanceOfAbi, signer)
 
-      const swapContract = new ethers.Contract(saddleSwapAddress, saddleSwapAbi, signer)
+    let lpTokenBalance: BigNumber
+
+    // get balance of LP token
+    try {
+      const balance = await lpTokenContract.balanceOf(address?.address)
+      lpTokenBalance = balance
+      console.log("LP token balance:", parseInt(balance.toString(), 16))
+    } catch (error) {
+      console.error(error)
+      return
+    }
+
+    // approve LP token spending
+    try {
+      const approveTx = await approveToken(lpTokenContractAddress, saddleSwapContractAddress, lpTokenBalance)
+        .then(() => {
+          removeLiquidityOneToken(lpTokenBalance)
+        })
+        .catch(error => console.error(error))
+    } catch (error) {
+      console.error(error)
+    }
+
+    async function removeLiquidityOneToken(amount: BigNumber) {
+      const minAmount = amount.mul(95).div(100)
+
+      const swapContract = new ethers.Contract(saddleSwapContractAddress, saddleSwapAbi, signer)
 
       /*
         uint256 tokenAmount,
@@ -156,9 +170,15 @@ export function RebalanceModal(props) {
         uint256 minAmount,
         uint256 deadline
       */
-      swapContract.removeLiquidityOneToken(amount, 0, minAmount, deadline, { gasLimit: gasLimit })
-        .then((tokensReceived) => console.log(`success`))
-        .catch(error => console.log(error))
+      const removeLiquidityTx = await swapContract.removeLiquidityOneToken(amount, 0, minAmount, deadline, { gasLimit: gasLimit })
+      await removeLiquidityTx.wait()
+        .then((availableTokenAmount) => {
+          console.dir(availableTokenAmount)
+          console.log(availableTokenAmount.value.toString())
+          console.log("Successfully removed", parseInt(availableTokenAmount.value.toString(), 16), "tokens")
+          setERC20PositionBalance(availableTokenAmount.value.toString())
+        })
+        .catch(error => console.error(error))
     }
   }
 
@@ -208,7 +228,7 @@ export function RebalanceModal(props) {
       }
     )
       .then((balance) => console.log(`success`))
-      .catch(error => console.log(error))
+      .catch(error => console.error(error))
   }
 
   function addLiquidity() {
@@ -247,9 +267,9 @@ export function RebalanceModal(props) {
         */
         swapContract.addLiquidity([amount, 0], minToMint, deadline, { gasLimit: gasLimit })
           .then((tokensReceived) => console.log(`success`))
-          .catch(error => console.log(error))
+          .catch(error => console.error(error))
       })
-      .catch(error => console.log(error))
+      .catch(error => console.error(error))
   }
 
   async function stake() {
@@ -262,7 +282,7 @@ export function RebalanceModal(props) {
     const approveTx = await approveLPTokenFor(stakingContractAddress)
     await approveTx.wait()
       .then(() => console.log(`Approved successfully`))
-      .catch(error => console.log(error))
+      .catch(error => console.error(error))
 
     // stake LP tokens
     const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
@@ -270,7 +290,7 @@ export function RebalanceModal(props) {
     const stakeTx = await stakingContract.stake(amount, { gasLimit: gasLimit * 3 })
     stakeTx.wait()
       .then(() => console.log(`Staked successfully`))
-      .catch(error => console.log(error))
+      .catch(error => console.error(error))
   }
 
 
@@ -289,37 +309,40 @@ export function RebalanceModal(props) {
 
       return await lpTokenContract.approve(address, maxAmount, { gasLimit: gasLimit })
     } catch (error) {
-      console.log(error)
+      console.error(error)
     }
   }
 
-  async function approveTokens(tokenAddress: string, spenderAddress: string) {
+  async function approveToken(tokenAddress: string, spenderAddress: string, amount: BigNumber) {
     // approve if allowance is less than the amount needed
+    const allowanceAndApproveAbi = ["function allowance(address owner, address spender) public view returns (uint256)", "function approve(address spender, uint256 amount) external returns (bool)"]
+    const tokenContract = new ethers.Contract(tokenAddress, allowanceAndApproveAbi, signer)
 
-    /* 
-    const balance = await lpToken.balanceOf()
-    const allowance = await lpToken.allowance(saddleSwap.address)
-    if (allowance.lt(balance)) {
-      return lpToken.approve(saddleSwap.address, constants.MaxUint256)
-    } 
-    */
+    // get the current allowance for the token and spender
+    try {
+      const currentAllowance = await tokenContract.allowance(address?.address, spenderAddress)
 
-
-    const chainSlug = selectedNetwork?.slug ?? ""
-    const tokenSymbol = selectedBridge?.getTokenSymbol() ?? ""
+      // check if the current allowance is less than the maximum amount
+      if (currentAllowance.lt(amount)) {
+        console.log("Allowance is less than amount, approving higher limit")
+      } else {
+        console.log("Allowance is equal to or greater than amount, no approval necessary")
+        return
+      }
+    } catch (error) {
+      return error
+    }
 
     // approve LP token spending
     try {
-      const lpTokenContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleLpToken
-
-      const approveAbi = ["function approve(address spender, uint256 amount) external returns (bool)"]
-      const lpTokenContract = new ethers.Contract(lpTokenContractAddress, approveAbi, signer)
+      const approveTx = await tokenContract.approve(spenderAddress, maxAmount, { gasLimit: gasLimit })
+      await approveTx.wait()
 
       console.log("Approved successfully")
 
-      return await lpTokenContract.approve(address, maxAmount, { gasLimit: gasLimit })
+      return approveTx
     } catch (error) {
-      console.log(error)
+      return error
     }
   }
 
@@ -360,14 +383,14 @@ export function RebalanceModal(props) {
     /*
     contractWETH.approve("0xC1985d7a3429cDC85E59E2E4Fcc805b857e6Ee2E", maxAmount, { gasLimit: gasLimit })
       .then((balance) => console.log(`success`))
-      .catch(error => console.log(error))
+      .catch(error => console.error(error))
     */
 
     // Call the function on the contract instance
     /*
     contractHETH.approve("0x2708E5C7087d4C6D295c8B58b2D452c360D505C7", maxAmount, { gasLimit: gasLimit })
       .then((balance) => console.log(`success`))
-      .catch(error => console.log(error))
+      .catch(error => console.error(error))
     */
 
     // approve HOP-LP-ETH contract (for adding liquidity)
@@ -410,7 +433,7 @@ export function RebalanceModal(props) {
       }
     )
       .then((balance) => console.log(`success`))
-      .catch(error => console.log(error))
+      .catch(error => console.error(error))
   }
 
   async function changeNetwork(destinationNetworkId: number) {
@@ -441,6 +464,10 @@ export function RebalanceModal(props) {
   }
 
   async function debugTransaction() {
+    console.log(parseInt("0x00000000000000000000000000000000000000000000000000000000000040000000040000000000000000800c00000000000000000000000000000000200000000000000000000000000008000000000000000000000000000000000000000000000000020000000000000000000800000100000200000000000010000000000000400000004000000000000000000000000000000000000000080000000000020080000000000000100000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000400000000000020000010000000000800000000000000400000000000400020000020000000000000", 16))
+    // ethers.utils.parseUnits("0x3e3a156000000000000000000000000000000000000000000000000001611150cdd3bcd50000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000014f6a0cc3892697000000000000000000000000000000000000000000000000000000063ea9d8fc", 0)
+
+
     console.log(reactAppNetwork === 'goerli')
     const tokenSymbol = selectedBridge?.getTokenSymbol() ?? ""
 
@@ -484,7 +511,7 @@ export function RebalanceModal(props) {
           <button onClick={() => addLiquidity()}>Add liquidity</button>
           <button onClick={() => stake()}>Stake</button>
           <p> - </p>
-          <button onClick={() => approveTokens("0x2105a73d7739f1034becc1bd87f4f7820d575644", "0xd691e3f40692a28f0b8090d989cc29f24b59f945")}>Approve</button>
+          <button onClick={() => approveToken("0x2105a73d7739f1034becc1bd87f4f7820d575644", "0xd691e3f40692a28f0b8090d989cc29f24b59f945", maxAmount)}>Approve</button>
           <button onClick={() => convertHTokens()}>Convert hTokens</button>
           <button onClick={() => changeNetwork(421613)}>Change network</button>
           <button onClick={() => debugTransaction()}>Debug</button>
