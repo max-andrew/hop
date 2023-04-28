@@ -13,10 +13,11 @@ import L2_AmmWrapperAbi from '@hop-protocol/core/abi/generated/L2_AmmWrapper.jso
 import { hopStakingRewardsContracts } from 'src/config/addresses'
 import * as addresses from '@hop-protocol/core/addresses'
 import * as networks from '@hop-protocol/core/networks'
+import { ChainSlug, utils as sdkUtils } from '@hop-protocol/sdk'
 import { useSelectedNetwork } from 'src/hooks'
 import { reactAppNetwork } from 'src/config'
-import { ChainSlug, utils as sdkUtils } from '@hop-protocol/sdk'
 import { useApp } from 'src/contexts/AppContext'
+import { networkIdToSlug } from 'src/utils/networks'
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -93,15 +94,21 @@ export function RebalanceModal(props) {
   const { selectedBridge } = useApp()
   const tokenSymbol = selectedBridge?.getTokenSymbol() ?? ""
 
-  // testing default values
-  // const [erc20PositionBalance, setERC20PositionBalance] = useState("0")
+  const [destinationNetworkId, setDestinationNetworkId] = useState(420)
+  const [bridgeTxHash, setBridgeTxHash] = useState("")
+  const [bondTxHash, setBondTxHash] = useState("")
 
   // testing values
   const maxAmount = BigNumber.from(2).pow(256).sub(1)
-  // const deadline = 26821122300
-  const gasLimit = 1000000
-  const destinationChainId = 421613
+  const gasLimit = 700000
 
+
+  /* REBALANCE FUNCTIONS */
+
+  // use yields and user input to determine the destination chain
+  function setDestinationNetwork() {
+    setDestinationNetworkId(420)
+  }
 
   async function unstake() {
     const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
@@ -169,9 +176,9 @@ export function RebalanceModal(props) {
       try {
         const removeLiquidityTx = await swapContract.removeLiquidityOneToken(amount, 0, minAmount, deadline, { gasLimit: gasLimit })
         await removeLiquidityTx.wait()
-          .then((removeLiquidityTxReceipt) => {
+          .then(async (removeLiquidityTxReceipt) => {
             if (typeof removeLiquidityTxReceipt !== "undefined") {
-              let numberOfTokensWithdrawn: string = removeLiquidityTxReceipt.logs[1].data.toString()
+              let numberOfTokensWithdrawn: string = removeLiquidityTxReceipt.logs[2].data.toString()
               numberOfTokensWithdrawn = parseInt(numberOfTokensWithdrawn, 16).toString()
 
               console.log("Successfully withdrew", numberOfTokensWithdrawn, "tokens")
@@ -187,12 +194,29 @@ export function RebalanceModal(props) {
     }
   }
 
+  // unwrap if ETH
+  async function unwrapIfETH() {
+    if (tokenSymbol === "ETH") {
+      try {
+        const erc20PositionBalance = localStorage.getItem("erc20PositionBalance") ?? "0"
+
+        const unwrapTx = await unwrapETH(erc20PositionBalance)
+        await unwrapTx.wait()
+          .then(() => console.log("Successfully unwrapped ETH"))
+          .catch(error => console.error(error))
+      } catch (error) {
+        console.error(error)
+      }
+    } else {
+      console.log("Token is ERC20, no unwrap necessary")
+    }
+  }
+
   // bridge canonical tokens
   async function swapAndSend() {
     const l2AmmWrapperContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2AmmWrapper
     const l2AmmWrapperContract = new ethers.Contract(l2AmmWrapperContractAddress, L2_AmmWrapperAbi, signer)
 
-    const chainId = destinationChainId
     const recipient = address?.address
     let amount = localStorage.getItem("erc20PositionBalance") ?? "0"
     let bonderFee
@@ -201,12 +225,19 @@ export function RebalanceModal(props) {
     const destinationAmountOutMin = amountOutMin
     const destinationDeadline = getDeadline(3)
 
+    const destinationNetworkSlug = networkIdToSlug(destinationNetworkId)
+
     try {
-      await fetch(`https://api.hop.exchange/v1/quote?amount=${amount}&token=${tokenSymbol}&fromChain=${chainSlug}&toChain=arbitrum&slippage=0.5`)
+      await fetch(`https://api.hop.exchange/v1/quote?amount=${amount}&token=${tokenSymbol}&fromChain=${chainSlug}&toChain=${destinationNetworkSlug}&slippage=0.5`)
       .then(response => response.json())
       .then(data => {
-        bonderFee = data.bonderFee.toString()
-        amount = (+amount + +bonderFee).toString()
+        bonderFee = data.bonderFee
+
+        if (reactAppNetwork === "goerli") {
+          bonderFee = bonderFee * 2
+        }
+
+        amount = (+amount + bonderFee).toString()
         console.log("Bonder fee:", bonderFee)
       })
     } catch (error) {
@@ -222,7 +253,7 @@ export function RebalanceModal(props) {
     // bridge tokens
     try {
       const bridgeTx = await l2AmmWrapperContract.swapAndSend(
-        chainId,
+        destinationNetworkId,
         recipient,
         amount,
         bonderFee,
@@ -235,16 +266,61 @@ export function RebalanceModal(props) {
           gasLimit: gasLimit
         }
       )
+
+      setBridgeTxHash(bridgeTx.hash)
+
       await bridgeTx.wait()
-        .then(() => console.log("Successfully bridged tokens"))
+        .then(() => console.log("Successfully sent tokens"))
         .catch(error => console.error(error))
     } catch (error) {
       console.error(error)
     }
   }
 
+  async function checkBridgeStatus() {
+    const bridgeStatusURL: string = `https://api.hop.exchange/v1/transfer-status?transactionHash=${bridgeTxHash}&network=${reactAppNetwork}`
+
+    const response = await fetch(bridgeStatusURL)
+    const data = await response.json()
+
+    if (typeof data.error !== "undefined") {
+      console.log("Error checking bridge status")
+      return
+    }
+
+    const deadline = getDeadline(3)
+    
+    while (getDeadline(0) < deadline) {
+      const response = await fetch(bridgeStatusURL)
+      const data = await response.json()
+
+      if (data.bonded) {
+        setBondTxHash(data.bondTransactionHash)
+        console.log("Successfully bridged tokens")
+        return
+      } else {
+        console.log("Could not yet confirm successful bridging, rechecking")
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 10000)) // 10 second intervals
+    }
+    console.log("Unable to confirm successful bridge transaction")
+  }
+
+  async function changeNetwork() {
+    try {
+      checkConnectedNetworkId(destinationNetworkId)
+
+      const event = { target: { value: networkIdToSlug(destinationNetworkId) } }
+      selectSourceNetwork(event as React.ChangeEvent<{ value: any }>)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
   async function addLiquidity() {
-    const erc20PositionBalance = localStorage.getItem("erc20PositionBalance") ?? "10000000000000000"
+    // const numberOfBridgedTokensReceived: string = bondTxReceipt.logs[11].data.toString()
+    const erc20PositionBalance = localStorage.getItem("erc20PositionBalance") ?? "0"
 
     // wrap if ETH
     if (tokenSymbol === "ETH") {
@@ -348,27 +424,15 @@ export function RebalanceModal(props) {
   }
 
 
-  function getDestination() {
-    // use yields and user input to determine the destination chain
+  /* DEBUG FUNCTIONS */
+
+  function getLocalStorage() {
+    console.log(localStorage.getItem("erc20PositionBalance"))
   }
 
-  async function approveToken(tokenAddress: string, spenderAddress: string, amount: string) {
-    // approve if allowance is less than the amount needed
-    const allowanceAndApproveAbi = ["function allowance(address owner, address spender) public view returns (uint256)", "function approve(address spender, uint256 amount) external returns (bool)"]
-    const tokenContract = new ethers.Contract(tokenAddress, allowanceAndApproveAbi, signer)
-
-    // get the current allowance for the token and spender
-    let currentAllowance = await tokenContract.allowance(address?.address, spenderAddress)
-    currentAllowance = currentAllowance.toString()
-
-    // check if the current allowance is less than the maximum amount
-    if (currentAllowance < amount) {
-      console.log("Allowance is less than amount, approving higher limit")
-      // approve LP token spending
-      return tokenContract.approve(spenderAddress, amount, { gasLimit: gasLimit })
-    } else {
-      console.log("Allowance is equal to or greater than amount, no approval necessary")
-    }
+  function clearLocalStorage() {
+    localStorage.setItem("erc20PositionBalance", "0")
+    console.log("Successfully cleared local storage")
   }
 
   function convertHTokens() {
@@ -408,31 +472,33 @@ export function RebalanceModal(props) {
       .catch(error => console.error(error))
   }
 
-  async function changeNetwork(destinationNetworkId: number) {
-    // Switch to the Ropsten test network
-    // provider?.send('wallet_switchEthereumChain', [{ chainId: "421613" }]).catch(() => {
-    //   provider?.send('wallet_addEthereumChain', [{ chainId: "421613", rpcUrl: 'https://ropsten.infura.io/v3/84842078b09946638c03157f83405213' }])
-    // })
+  async function debugTransaction() {
+    const response = await fetch(`https://api.hop.exchange/v1/transfer-status?transactionHash=${"0x374fbb2f63e568e646f0c6aa28169e954b126a8a7949ecac7693ab7801ea2f2"}&network=${reactAppNetwork}`)
+    const data = await response.json()
 
-    // const event = { target: { value: "polygon" } }
-    // selectSourceNetwork(event as React.ChangeEvent<{ value: any }>)
+    console.dir(data)
+    console.log(typeof data.error === "undefined")
+  }
 
-    /*
-    window.ethereum.request({
-      method: "wallet_addEthereumChain",
-      params: [{
-        chainId: "0x89",
-        rpcUrls: ["https://rpc-mainnet.matic.network/"],
-        chainName: "Matic Mainnet",
-        nativeCurrency: {
-            name: "MATIC",
-            symbol: "MATIC",
-            decimals: 18
-        },
-        blockExplorerUrls: ["https://polygonscan.com/"]
-      }]
-    })
-    */
+
+  /* HELPER FUNCTIONS */
+
+  async function approveToken(tokenAddress: string, spenderAddress: string, amount: string) {
+    const allowanceAndApproveAbi = ["function allowance(address owner, address spender) public view returns (uint256)", "function approve(address spender, uint256 amount) external returns (bool)"]
+    const tokenContract = new ethers.Contract(tokenAddress, allowanceAndApproveAbi, signer)
+
+    // get the current allowance for the token and spender
+    let currentAllowance = await tokenContract.allowance(address?.address, spenderAddress)
+    currentAllowance = currentAllowance.toString()
+
+    // check if the current allowance is less than the required amount
+    if (currentAllowance < amount) {
+      console.log("Allowance is less than amount, approving higher limit")
+      // approve LP token spending
+      return tokenContract.approve(spenderAddress, amount, { gasLimit: gasLimit })
+    } else {
+      console.log("Allowance is equal to or greater than amount, no approval necessary")
+    }
   }
 
   async function wrapETH(amountToWrap: string) {
@@ -444,15 +510,21 @@ export function RebalanceModal(props) {
     return await wethContract.deposit({ value: amountToWrap, gasLimit: gasLimit })
   }
 
-  async function debugTransaction() {
-    localStorage.setItem("erc20PositionBalance", "10000000000000000")
+  async function unwrapETH(amountToUnwrap: string) {
+    const wETHContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
+    const wethAbi = ["function withdraw(uint wad) public"]
+
+    const wethContract = new ethers.Contract(wETHContractAddress, wethAbi, signer)
+
+    return await wethContract.withdraw(amountToUnwrap, { gasLimit: gasLimit })
   }
 
   function getDeadline(confirmTimeMinutes: number) {
-    const currentTime = Math.floor(Date.now() / 1000) // convert milliseconds to seconds
-    const deadline = currentTime + (confirmTimeMinutes * 60) // add confirmation time in seconds
+    const currentTime = Math.floor(Date.now() / 1000)
+    const deadline = currentTime + (confirmTimeMinutes * 60)
     return deadline
   }
+
 
   if (props.showRebalanceModal) {
     return (
@@ -460,18 +532,24 @@ export function RebalanceModal(props) {
         <Card className="styles.card">
           <RebalanceModalHeader headerTitle="Rebalance staked position" />
           <br />
+          <button onClick={() => setDestinationNetwork()}>Get destination chain</button>
           <button onClick={() => unstake()}>Unstake</button>
           <button onClick={() => withdrawPosition()}>Withdraw</button>
+          <button onClick={() => unwrapIfETH()}>Unwrap if ETH</button>
           <button onClick={() => swapAndSend()}>Bridge</button>
+          <br />
+          <br />
+          <button onClick={() => checkBridgeStatus()}>Check bridge status</button>
+          <button onClick={() => changeNetwork()}>Change network</button>
           <button onClick={() => addLiquidity()}>Deposit</button>
           <button onClick={() => stake()}>Stake</button>
           <p> - </p>
-          <button onClick={() => getDestination()}>Get destination chain</button>
+          <button onClick={() => getLocalStorage()}>Get local storage</button>
+          <button onClick={() => clearLocalStorage()}>Clear local storage</button>
+          <br />
+          <br />
           <button onClick={() => approveToken("0x2105a73d7739f1034becc1bd87f4f7820d575644", "0xd691e3f40692a28f0b8090d989cc29f24b59f945", maxAmount.toString())}>Approve</button>
           <button onClick={() => convertHTokens()}>Convert hTokens</button>
-          <br />
-          <br />
-          <button onClick={() => changeNetwork(421613)}>Change network</button>
           <button onClick={() => wrapETH("1000000000000000")}>Wrap ETH</button>
           <button onClick={() => debugTransaction()}>Debug</button>
           <p> - </p>
