@@ -13,11 +13,13 @@ import L2_AmmWrapperAbi from '@hop-protocol/core/abi/generated/L2_AmmWrapper.jso
 import { hopStakingRewardsContracts } from 'src/config/addresses'
 import * as addresses from '@hop-protocol/core/addresses'
 import * as networks from '@hop-protocol/core/networks'
+import * as metadata from '@hop-protocol/core/metadata'
 import { ChainSlug, utils as sdkUtils } from '@hop-protocol/sdk'
 import { useSelectedNetwork } from 'src/hooks'
 import { reactAppNetwork } from 'src/config'
 import { useApp } from 'src/contexts/AppContext'
 import { networkIdToSlug } from 'src/utils/networks'
+import { usePoolStats } from 'src/pages/Pools/usePoolStats'
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -94,6 +96,8 @@ export function RebalanceModal(props) {
   const { selectedBridge } = useApp()
   const tokenSymbol = selectedBridge?.getTokenSymbol() ?? ""
 
+  const { poolStats } = usePoolStats()
+
   const [destinationNetworkId, setDestinationNetworkId] = useState(420)
   const [erc20PositionBalance, setERC20PositionBalance] = useState<string>("")
   const [bridgeTxHash, setBridgeTxHash] = useState<string>("")
@@ -107,7 +111,22 @@ export function RebalanceModal(props) {
 
   // use yields and user input to determine the destination chain
   function setDestinationNetwork() {
-    const destinationId = 421613
+    console.dir(poolStats)
+
+    /*
+      Networks:
+        Arbitrum
+        Optimism
+        Gnosis
+        Polygon
+      Tokens:
+        ETH
+        USDC
+        DAI
+        USDT
+    */
+
+    const destinationId = 10 // 100 // 137 // 69 // 42161 //3
 
     setDestinationNetworkId(destinationId)
 
@@ -189,7 +208,14 @@ export function RebalanceModal(props) {
     async function removeLiquidityOneToken(amount: string) {
       const swapContract = new ethers.Contract(saddleSwapContractAddress, saddleSwapAbi, signer)
 
-      const minAmount = BigNumber.from(amount).mul(95).div(100).toString()
+      // adjust for potential difference in decimals between LP tokens and collateral
+      const decimals = metadata[reactAppNetwork].tokens[tokenSymbol].decimals
+      let minAmountBN: BigNumber = BigNumber.from(balance.toString())
+      if (decimals < 18) {
+        minAmountBN = minAmountBN.div(10 ** (18 - decimals))
+      }
+      const minAmount: string = minAmountBN.mul(70).div(100).toString()
+
       const deadline = getDeadline(2)
 
       try {
@@ -213,13 +239,27 @@ export function RebalanceModal(props) {
     }
   }
 
-  // unwrap if ETH
-  async function unwrapIfETH() {
+  // unwrap if ETH or DAI on Gnosis
+  async function unwrapIfNativeToken() {
     if (tokenSymbol === "ETH") {
       try {
         const unwrapTx = await unwrapETH(erc20PositionBalance)
         await unwrapTx.wait()
           .then(() => console.log("Successfully unwrapped ETH"))
+          .catch(error => console.error(error))
+      } catch (error) {
+        console.error(error)
+      }
+    } else if (tokenSymbol === "DAI" && chainSlug === "gnosis") {
+      const wDAIContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
+      const wDAIAbi = ["function withdraw(uint256 wad) external"]
+
+      const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
+
+      try {
+        const unwrapTx = await wDAIContract.withdraw(erc20PositionBalance, { gasLimit: gasLimit })
+        await unwrapTx.wait()
+          .then(() => console.log("Successfully unwrapped DAI"))
           .catch(error => console.error(error))
       } catch (error) {
         console.error(error)
@@ -233,16 +273,35 @@ export function RebalanceModal(props) {
   async function swapAndSend() {
     const l2AmmWrapperContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2AmmWrapper
     const l2AmmWrapperContract = new ethers.Contract(l2AmmWrapperContractAddress, L2_AmmWrapperAbi, signer)
+    const canonicalTokenContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
+
+    const amount: string = erc20PositionBalance
+
+    // approve LP token spending
+    try {
+      const approveTx = await approveToken(canonicalTokenContractAddress, l2AmmWrapperContractAddress, amount)
+      if (typeof approveTx !== "undefined") {
+        await approveTx.wait()
+          .then(() => {
+            console.log("Approved successfully")
+          })
+          .catch(error => console.error(error))
+      }
+    } catch (error) {
+      console.error(error)
+      return
+    }
 
     const recipient = address?.address
-    let amount = erc20PositionBalance
     let bonderFee: string
-    const amountOutMin = amount !== null ? BigNumber.from(amount).mul(95).div(100).toString() : "0"
-    const deadline = getDeadline(6)
+    const amountOutMin = amount !== null ? BigNumber.from(amount).mul(70).div(100).toString() : "0"
+    const deadline = getDeadline(15)
     const destinationAmountOutMin = amountOutMin
-    const destinationDeadline = getDeadline(9)
+    const destinationDeadline = getDeadline(30)
 
     const destinationNetworkSlug = networkIdToSlug(destinationNetworkId)
+
+    console.log(`Getting bonder fee for bridging ${amount} ${tokenSymbol} from ${chainSlug} to ${destinationNetworkSlug}`)
 
     try {
       const response = await fetch(`https://api.hop.exchange/v1/quote?amount=${amount}&token=${tokenSymbol}&fromChain=${chainSlug}&toChain=${destinationNetworkSlug}&slippage=0.5`)
@@ -254,16 +313,15 @@ export function RebalanceModal(props) {
         bonderFee = BigNumber.from(bonderFee).mul(15).div(10).toString() // 1.5x
       }
 
-      amount = BigNumber.from(amount).add(BigNumber.from(bonderFee)).toString()
       console.log("Bonder fee:", bonderFee)
     } catch (error) {
       console.error(error)
       return
     }
 
-    let value = amount
-    if (tokenSymbol !== "ETH") {
-      value = "0"
+    let value = "0"
+    if (tokenSymbol === "ETH" || (tokenSymbol === "DAI" && chainSlug === "gnosis")) {
+      value = amount
     }
     
     // bridge tokens
@@ -350,8 +408,8 @@ export function RebalanceModal(props) {
     }
   }
 
-  // wrap if ETH
-  async function wrapIfETH() {
+  // wrap if ETH or DAI on Gnosis
+  async function wrapIfNativeToken() {
     if (tokenSymbol === "ETH") {
       try {
         const wrapTx = await wrapETH(numberOfBridgedTokensReceived)
@@ -361,17 +419,35 @@ export function RebalanceModal(props) {
       } catch (error) {
         console.error(error)
       }
+    } else if (tokenSymbol === "DAI" && chainSlug === "gnosis") {
+      const wDAIContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
+      const wDAIAbi = ["function deposit() payable"]
+
+      const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
+
+      try {
+        const wrapTx = await wDAIContract.deposit({ value: numberOfBridgedTokensReceived, gasLimit: gasLimit })
+        await wrapTx.wait()
+          .then(() => console.log("Successfully wrapped DAI"))
+          .catch(error => console.error(error))
+      } catch (error) {
+        console.error(error)
+      }
+    } else {
+      console.log("Token is ERC20, no wrap necessary")
     }
   }
 
   // deposit tokens
   async function addLiquidity() {
-    const wETHContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
+    const canonicalTokenContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
     const saddleSwapContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleSwap
 
-    // approve wETH token spending
+    console.log(numberOfBridgedTokensReceived)
+
+    // approve canonical token spending
     try {
-      const approveTx = await approveToken(wETHContractAddress, saddleSwapContractAddress, numberOfBridgedTokensReceived)
+      const approveTx = await approveToken(canonicalTokenContractAddress, saddleSwapContractAddress, numberOfBridgedTokensReceived)
       if (typeof approveTx !== "undefined") {
         await approveTx.wait()
           .then(() => {
@@ -389,10 +465,10 @@ export function RebalanceModal(props) {
       .mul(7)
       .div(10)
       .toString()
-    const deadline = getDeadline(2)
+    const deadline = getDeadline(4)
 
     try {
-      const depositTx = await swapContract.addLiquidity([numberOfBridgedTokensReceived, 0],  minToMint, deadline, { gasLimit: gasLimit })
+      const depositTx = await swapContract.addLiquidity([numberOfBridgedTokensReceived, 0],  minToMint, deadline, { gasLimit: gasLimit * 2 })
       await depositTx.wait()
         .then((tokensReceived) => {
           console.log("Successfully deposited tokens")
@@ -556,14 +632,14 @@ export function RebalanceModal(props) {
           <button onClick={() => setDestinationNetwork()}>Set destination chain</button>
           <button onClick={() => unstake()}>Unstake</button>
           <button onClick={() => withdrawPosition()}>Withdraw</button>
-          <button onClick={() => unwrapIfETH()}>Unwrap if ETH</button>
+          <button onClick={() => unwrapIfNativeToken()}>Unwrap if native token</button>
           <button onClick={() => swapAndSend()}>Bridge</button>
           <button onClick={() => checkBridgeStatusAndSetBondHash()}>Set bridge data</button>
           <br />
           <br />
           <button onClick={() => changeNetwork()}>Change network</button>
           <button onClick={() => setBridgedTokenData()}>Set bridged token data</button>
-          <button onClick={() => wrapIfETH()}>Wrap if ETH</button>
+          <button onClick={() => wrapIfNativeToken()}>Wrap if native token</button>
           <button onClick={() => addLiquidity()}>Deposit</button>
           <button onClick={() => stake()}>Stake</button>
           <p> - </p>
