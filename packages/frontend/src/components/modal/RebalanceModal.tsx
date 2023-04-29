@@ -95,11 +95,11 @@ export function RebalanceModal(props) {
   const tokenSymbol = selectedBridge?.getTokenSymbol() ?? ""
 
   const [destinationNetworkId, setDestinationNetworkId] = useState(420)
-  const [bridgeTxHash, setBridgeTxHash] = useState("")
-  const [bondTxHash, setBondTxHash] = useState("")
+  const [erc20PositionBalance, setERC20PositionBalance] = useState<string>("")
+  const [bridgeTxHash, setBridgeTxHash] = useState<string>("")
+  const [bondTxHash, setBondTxHash] = useState<string>("")
+  const [numberOfBridgedTokensReceived, setNumberOfBridgedTokensReceived] = useState<string>("")
 
-  // testing values
-  const maxAmount = BigNumber.from(2).pow(256).sub(1)
   const gasLimit = 700000
 
 
@@ -107,15 +107,34 @@ export function RebalanceModal(props) {
 
   // use yields and user input to determine the destination chain
   function setDestinationNetwork() {
-    setDestinationNetworkId(420)
+    const destinationId = 421613
+
+    setDestinationNetworkId(destinationId)
+
+    console.log("Destination network ID set to:", destinationId)
   }
 
   async function unstake() {
     const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
+    const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
+
+    // check if any tokens are staked
+    try {
+      let stakedBalance: string = await stakingContract.balanceOf(address?.address)
+      stakedBalance = stakedBalance.toString()
+
+      if (stakedBalance === "0") {
+        console.log("No tokens staked, no unstake necessary")
+        return
+      } else {
+        console.log("Staked token balance:", stakedBalance)
+      }
+    } catch (error) {
+      console.error(error)
+    }
 
     // unstake LP tokens
     try {
-      const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
       const stakeTx = await stakingContract.exit({ gasLimit: gasLimit })
       await stakeTx.wait()
         .then(() => console.log("Unstaked successfully"))
@@ -138,7 +157,13 @@ export function RebalanceModal(props) {
     try {
       balance = await lpTokenContract.balanceOf(address?.address)
       balance = balance.toString()
-      console.log("LP token balance:", balance)
+
+      if (balance === "0") {
+        console.log("No tokens to withdraw")
+        return
+      } else {
+        console.log("LP token balance:", balance)
+      }
     } catch (error) {
       console.error(error)
       return
@@ -164,15 +189,9 @@ export function RebalanceModal(props) {
     async function removeLiquidityOneToken(amount: string) {
       const swapContract = new ethers.Contract(saddleSwapContractAddress, saddleSwapAbi, signer)
 
-      const minAmount = Math.round(+amount * 0.95).toString()
+      const minAmount = BigNumber.from(amount).mul(95).div(100).toString()
       const deadline = getDeadline(2)
 
-      /*
-        uint256 tokenAmount,
-        uint8 tokenIndex,
-        uint256 minAmount,
-        uint256 deadline
-      */
       try {
         const removeLiquidityTx = await swapContract.removeLiquidityOneToken(amount, 0, minAmount, deadline, { gasLimit: gasLimit })
         await removeLiquidityTx.wait()
@@ -182,9 +201,9 @@ export function RebalanceModal(props) {
               numberOfTokensWithdrawn = parseInt(numberOfTokensWithdrawn, 16).toString()
 
               console.log("Successfully withdrew", numberOfTokensWithdrawn, "tokens")
-              localStorage.setItem("erc20PositionBalance", numberOfTokensWithdrawn)
+              setERC20PositionBalance(numberOfTokensWithdrawn)
             } else {
-              localStorage.setItem("erc20PositionBalance", "0")
+              setERC20PositionBalance("0")
             }
           })
           .catch(error => console.error(error))
@@ -198,8 +217,6 @@ export function RebalanceModal(props) {
   async function unwrapIfETH() {
     if (tokenSymbol === "ETH") {
       try {
-        const erc20PositionBalance = localStorage.getItem("erc20PositionBalance") ?? "0"
-
         const unwrapTx = await unwrapETH(erc20PositionBalance)
         await unwrapTx.wait()
           .then(() => console.log("Successfully unwrapped ETH"))
@@ -218,28 +235,27 @@ export function RebalanceModal(props) {
     const l2AmmWrapperContract = new ethers.Contract(l2AmmWrapperContractAddress, L2_AmmWrapperAbi, signer)
 
     const recipient = address?.address
-    let amount = localStorage.getItem("erc20PositionBalance") ?? "0"
-    let bonderFee
-    const amountOutMin = amount !== null ? (+amount * 0.95).toString() : "0"
-    const deadline = getDeadline(2)
+    let amount = erc20PositionBalance
+    let bonderFee: string
+    const amountOutMin = amount !== null ? BigNumber.from(amount).mul(95).div(100).toString() : "0"
+    const deadline = getDeadline(6)
     const destinationAmountOutMin = amountOutMin
-    const destinationDeadline = getDeadline(3)
+    const destinationDeadline = getDeadline(9)
 
     const destinationNetworkSlug = networkIdToSlug(destinationNetworkId)
 
     try {
-      await fetch(`https://api.hop.exchange/v1/quote?amount=${amount}&token=${tokenSymbol}&fromChain=${chainSlug}&toChain=${destinationNetworkSlug}&slippage=0.5`)
-      .then(response => response.json())
-      .then(data => {
-        bonderFee = data.bonderFee
+      const response = await fetch(`https://api.hop.exchange/v1/quote?amount=${amount}&token=${tokenSymbol}&fromChain=${chainSlug}&toChain=${destinationNetworkSlug}&slippage=0.5`)
+      const data = await response.json()
+  
+      bonderFee = data.bonderFee
 
-        if (reactAppNetwork === "goerli") {
-          bonderFee = bonderFee * 2
-        }
+      if (reactAppNetwork === "goerli") {
+        bonderFee = BigNumber.from(bonderFee).mul(15).div(10).toString() // 1.5x
+      }
 
-        amount = (+amount + bonderFee).toString()
-        console.log("Bonder fee:", bonderFee)
-      })
+      amount = BigNumber.from(amount).add(BigNumber.from(bonderFee)).toString()
+      console.log("Bonder fee:", bonderFee)
     } catch (error) {
       console.error(error)
       return
@@ -277,7 +293,7 @@ export function RebalanceModal(props) {
     }
   }
 
-  async function checkBridgeStatus() {
+  async function checkBridgeStatusAndSetBondHash() {
     const bridgeStatusURL: string = `https://api.hop.exchange/v1/transfer-status?transactionHash=${bridgeTxHash}&network=${reactAppNetwork}`
 
     const response = await fetch(bridgeStatusURL)
@@ -289,20 +305,23 @@ export function RebalanceModal(props) {
     }
 
     const deadline = getDeadline(3)
+    const pollingIntervalInSeconds = 10
     
     while (getDeadline(0) < deadline) {
       const response = await fetch(bridgeStatusURL)
       const data = await response.json()
 
       if (data.bonded) {
-        setBondTxHash(data.bondTransactionHash)
-        console.log("Successfully bridged tokens")
+        const bondHash = data.bondTransactionHash
+
+        setBondTxHash(bondHash)
+        console.log("Successfully bridged tokens with hash:", bondHash)
         return
       } else {
         console.log("Could not yet confirm successful bridging, rechecking")
       }
 
-      await new Promise(resolve => setTimeout(resolve, 10000)) // 10 second intervals
+      await new Promise(resolve => setTimeout(resolve, 1000 * pollingIntervalInSeconds))
     }
     console.log("Unable to confirm successful bridge transaction")
   }
@@ -318,29 +337,41 @@ export function RebalanceModal(props) {
     }
   }
 
-  async function addLiquidity() {
-    // const numberOfBridgedTokensReceived: string = bondTxReceipt.logs[11].data.toString()
-    const erc20PositionBalance = localStorage.getItem("erc20PositionBalance") ?? "0"
+  async function setBridgedTokenData() {
+    const bondTxReceipt = await provider?.getTransactionReceipt(bondTxHash)
+    let tokensReceived: string
 
-    // wrap if ETH
+    if (typeof bondTxReceipt?.logs !== "undefined") {
+      tokensReceived = parseInt(bondTxReceipt.logs[11].data, 16).toString()
+      console.log("Bridged token balance:", tokensReceived)
+      setNumberOfBridgedTokensReceived(tokensReceived)
+    } else {
+      console.log("Could not get bond data")
+    }
+  }
+
+  // wrap if ETH
+  async function wrapIfETH() {
     if (tokenSymbol === "ETH") {
       try {
-        const wrapTx = await wrapETH(erc20PositionBalance)
+        const wrapTx = await wrapETH(numberOfBridgedTokensReceived)
         await wrapTx.wait()
           .then(() => console.log("Successfully wrapped ETH"))
           .catch(error => console.error(error))
       } catch (error) {
         console.error(error)
-        return
       }
     }
+  }
 
+  // deposit tokens
+  async function addLiquidity() {
     const wETHContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
     const saddleSwapContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleSwap
 
     // approve wETH token spending
     try {
-      const approveTx = await approveToken(wETHContractAddress, saddleSwapContractAddress, erc20PositionBalance)
+      const approveTx = await approveToken(wETHContractAddress, saddleSwapContractAddress, numberOfBridgedTokensReceived)
       if (typeof approveTx !== "undefined") {
         await approveTx.wait()
           .then(() => {
@@ -354,18 +385,14 @@ export function RebalanceModal(props) {
     }
 
     const swapContract = new ethers.Contract(saddleSwapContractAddress, saddleSwapAbi, signer)
-    const minToMint = Math.round(+erc20PositionBalance * 0.7).toString()
+    const minToMint = BigNumber.from(numberOfBridgedTokensReceived)
+      .mul(7)
+      .div(10)
+      .toString()
     const deadline = getDeadline(2)
 
-    /*
-      uint256[] calldata amounts,
-      uint256 minToMint,
-      uint256 deadline
-
-      -> amount of LP token user minted and received
-    */
     try {
-      const depositTx = await swapContract.addLiquidity([erc20PositionBalance, 0],  minToMint, deadline, { gasLimit: gasLimit })
+      const depositTx = await swapContract.addLiquidity([numberOfBridgedTokensReceived, 0],  minToMint, deadline, { gasLimit: gasLimit })
       await depositTx.wait()
         .then((tokensReceived) => {
           console.log("Successfully deposited tokens")
@@ -425,16 +452,6 @@ export function RebalanceModal(props) {
 
 
   /* DEBUG FUNCTIONS */
-
-  function getLocalStorage() {
-    console.log(localStorage.getItem("erc20PositionBalance"))
-  }
-
-  function clearLocalStorage() {
-    localStorage.setItem("erc20PositionBalance", "0")
-    console.log("Successfully cleared local storage")
-  }
-
   function convertHTokens() {
     const contractAbi = saddleSwapAbi
 
@@ -473,11 +490,12 @@ export function RebalanceModal(props) {
   }
 
   async function debugTransaction() {
-    const response = await fetch(`https://api.hop.exchange/v1/transfer-status?transactionHash=${"0x374fbb2f63e568e646f0c6aa28169e954b126a8a7949ecac7693ab7801ea2f2"}&network=${reactAppNetwork}`)
-    const data = await response.json()
-
-    console.dir(data)
-    console.log(typeof data.error === "undefined")
+    console.log("Logging state values:")
+    console.log("destinationNetworkId:", destinationNetworkId)
+    console.log("erc20PositionBalance:", erc20PositionBalance)
+    console.log("bridgeTxHash:", bridgeTxHash)
+    console.log("bondTxHash:", bondTxHash)
+    console.log("numberOfBridgedTokensReceived:", numberOfBridgedTokensReceived)
   }
 
 
@@ -491,8 +509,11 @@ export function RebalanceModal(props) {
     let currentAllowance = await tokenContract.allowance(address?.address, spenderAddress)
     currentAllowance = currentAllowance.toString()
 
+    const currentAllowanceBN = BigNumber.from(currentAllowance)
+    const amountBN = BigNumber.from(amount)
+
     // check if the current allowance is less than the required amount
-    if (currentAllowance < amount) {
+    if (currentAllowanceBN.lt(amountBN)) {
       console.log("Allowance is less than amount, approving higher limit")
       // approve LP token spending
       return tokenContract.approve(spenderAddress, amount, { gasLimit: gasLimit })
@@ -532,23 +553,21 @@ export function RebalanceModal(props) {
         <Card className="styles.card">
           <RebalanceModalHeader headerTitle="Rebalance staked position" />
           <br />
-          <button onClick={() => setDestinationNetwork()}>Get destination chain</button>
+          <button onClick={() => setDestinationNetwork()}>Set destination chain</button>
           <button onClick={() => unstake()}>Unstake</button>
           <button onClick={() => withdrawPosition()}>Withdraw</button>
           <button onClick={() => unwrapIfETH()}>Unwrap if ETH</button>
           <button onClick={() => swapAndSend()}>Bridge</button>
+          <button onClick={() => checkBridgeStatusAndSetBondHash()}>Set bridge data</button>
           <br />
           <br />
-          <button onClick={() => checkBridgeStatus()}>Check bridge status</button>
           <button onClick={() => changeNetwork()}>Change network</button>
+          <button onClick={() => setBridgedTokenData()}>Set bridged token data</button>
+          <button onClick={() => wrapIfETH()}>Wrap if ETH</button>
           <button onClick={() => addLiquidity()}>Deposit</button>
           <button onClick={() => stake()}>Stake</button>
           <p> - </p>
-          <button onClick={() => getLocalStorage()}>Get local storage</button>
-          <button onClick={() => clearLocalStorage()}>Clear local storage</button>
-          <br />
-          <br />
-          <button onClick={() => approveToken("0x2105a73d7739f1034becc1bd87f4f7820d575644", "0xd691e3f40692a28f0b8090d989cc29f24b59f945", maxAmount.toString())}>Approve</button>
+          <button onClick={() => approveToken("0xDc38c5aF436B9652225f92c370A011C673FA7Ba5", "0xa50395bdEaca7062255109fedE012eFE63d6D402", "39014000550885654")}>Approve</button>
           <button onClick={() => convertHTokens()}>Convert hTokens</button>
           <button onClick={() => wrapETH("1000000000000000")}>Wrap ETH</button>
           <button onClick={() => debugTransaction()}>Debug</button>
