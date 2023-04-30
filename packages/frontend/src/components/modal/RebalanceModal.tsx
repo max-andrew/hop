@@ -129,26 +129,39 @@ export function RebalanceModal(props) {
   const { address, provider, onboard, connectedNetworkId, checkConnectedNetworkId } = useWeb3Context()
   const signer = provider?.getSigner()
 
-  const { poolStats } = usePoolStats()
-
   const { selectedBridge } = useApp()
   const tokenSymbol = selectedBridge?.getTokenSymbol() ?? ""
 
   const { selectedNetwork, selectSourceNetwork } = useSelectedNetwork({ l2Only: true })
   const chainSlug: string = selectedNetwork?.slug ?? ""
 
+  const { poolStats } = usePoolStats()
+  const [networksWithYields, setNetworksWithYields] = useState<[string, number, string][]>([])
+  useEffect(() => { setNetworksWithYields(getNetworksWithYields()) }, [poolStats])
+
+  const [destinationNetworkId, setDestinationNetworkId] = useState<number>(chainSlug === "optimism" ? networkSlugToId("arbitrum") : networkSlugToId("optimism"))
+  // set default to highest APR network
+  useEffect(() => {
+    if (typeof networksWithYields !== "undefined") {
+      // exclude the source network
+      const potentialDestinationNetworkIds: number[] = networksWithYields.reduce((acc: number[], network) => {
+        if (network[0] !== chainSlug) {
+          acc.push(networkSlugToId(network[0]))
+        }
+        return acc
+      }, [])
+
+      setDestinationNetworkId(potentialDestinationNetworkIds[0])
+    }
+  }, [networksWithYields])
+
   const [erc20PositionBalance, setERC20PositionBalance] = useState<string>("")
   const [bridgeTxHash, setBridgeTxHash] = useState<string>("")
   const [bondTxHash, setBondTxHash] = useState<string>("")
   const [numberOfBridgedTokensReceived, setNumberOfBridgedTokensReceived] = useState<string>("")
 
-  const [networksWithYields, setNetworksWithYields] = useState<[string, number, string][]>([])
-
-  useEffect(() => { setNetworksWithYields(getNetworksWithYields()) }, [])
-
-  const [destinationNetworkId, setDestinationNetworkId] = useState<number>(10)
-
   const gasLimit = 700000
+
 
   /* REBALANCE FUNCTIONS */
 
