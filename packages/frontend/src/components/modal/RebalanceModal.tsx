@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import Modal from 'src/components/modal/Modal'
-import Divider from '@material-ui/core/Divider'
-import { Text } from 'src/components/ui/Text'
-import Card from '@material-ui/core/Card'
-import { RaisedNetworkSelector } from 'src/components/NetworkSelector/RaisedNetworkSelector'
-import { makeStyles, Theme } from '@material-ui/core/styles'
-import { isDarkMode } from 'src/theme/theme'
+
 import { BigNumber, ethers } from 'ethers'
 import { useWeb3Context } from 'src/contexts/Web3Context'
 import { stakingRewardsAbi } from '@hop-protocol/core/abi'
@@ -22,7 +16,16 @@ import { reactAppNetwork } from 'src/config'
 import { useApp } from 'src/contexts/AppContext'
 import { networkIdToSlug, networkSlugToId } from 'src/utils/networks'
 import Network from 'src/models/Network'
+import Transaction from 'src/models/Transaction'
 import { usePoolStats } from 'src/pages/Pools/usePoolStats'
+
+import { isDarkMode } from 'src/theme/theme'
+import { makeStyles, Theme } from '@material-ui/core/styles'
+import { Grid, Card, Divider, Box, Typography } from '@material-ui/core'
+import Modal from 'src/components/modal/Modal'
+import { StyledModal } from 'src/components/modal/StyledModal'
+import { Text } from 'src/components/ui/Text'
+import { RaisedNetworkSelector } from 'src/components/NetworkSelector/RaisedNetworkSelector'
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -91,21 +94,32 @@ function NetworkSelectionSection(props) {
     
   return (
     <>
-      <p>Select network to transfer to:</p>
-      <RaisedNetworkSelector 
-        selectedNetwork={findNetworkBySlug(networkIdToSlug(destinationNetworkId))} 
-        onSelect={e => props.setDestinationNetwork(e.target.value)} 
-        availableNetworks={potentialDestinationNetworkObjects} 
-        />
+      <Typography>Select the network to transfer to</Typography>
+      <Grid container alignItems="center" justifyContent="center">
+        <Grid item xs>
+          <Box display="flex" alignItems="center" justifyContent="center">
+            <RaisedNetworkSelector 
+              selectedNetwork={findNetworkBySlug(networkIdToSlug(destinationNetworkId))} 
+              onSelect={e => props.setDestinationNetwork(e.target.value)} 
+              availableNetworks={potentialDestinationNetworkObjects} 
+              />
+          </Box>
+        </Grid>
+        <Divider orientation="vertical" flexItem />
+        <Grid item xs justify="center">
+          <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center">
+            {networks.map((tuple: NetworkAPRTupleType, index: number) => (
+              <>
+                <br />
+                <div key={index}>
+                  <p>{tuple[0]} | {tuple[2]}</p>
+                </div>
+              </>
+            ))}
+          </Box>
+        </Grid>
+      </Grid>
       <br />
-      {networks.map((tuple: NetworkAPRTupleType, index: number) => (
-        <>
-          <br />
-          <div key={index}>
-            <p>{tuple[0]} | {tuple[2]}</p>
-          </div>
-        </>
-      ))}
     </>
   )
 }
@@ -697,6 +711,7 @@ export function RebalanceModal(props) {
   if (props.showRebalanceModal) {
     return (
       <div className="styles.root">
+        <StyledModal>
         <Card className="styles.card">
           <RebalanceModalHeader headerTitle="Rebalance staked position" />
           <br />
@@ -727,6 +742,7 @@ export function RebalanceModal(props) {
           <br />
           <RebalanceModalFooter />
         </Card>
+        </StyledModal>
       </div>
     )
   } else {
