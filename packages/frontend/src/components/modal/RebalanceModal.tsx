@@ -3,6 +3,7 @@ import Modal from 'src/components/modal/Modal'
 import Divider from '@material-ui/core/Divider'
 import { Text } from 'src/components/ui/Text'
 import Card from '@material-ui/core/Card'
+import { RaisedNetworkSelector } from 'src/components/NetworkSelector/RaisedNetworkSelector'
 import { makeStyles, Theme } from '@material-ui/core/styles'
 import { isDarkMode } from 'src/theme/theme'
 import { BigNumber, ethers } from 'ethers'
@@ -15,10 +16,12 @@ import * as addresses from '@hop-protocol/core/addresses'
 import * as networks from '@hop-protocol/core/networks'
 import * as metadata from '@hop-protocol/core/metadata'
 import { ChainSlug, utils as sdkUtils } from '@hop-protocol/sdk'
+import { findNetworkBySlug } from 'src/utils'
 import { useSelectedNetwork } from 'src/hooks'
 import { reactAppNetwork } from 'src/config'
 import { useApp } from 'src/contexts/AppContext'
-import { networkIdToSlug } from 'src/utils/networks'
+import { networkIdToSlug, networkSlugToId } from 'src/utils/networks'
+import Network from 'src/models/Network'
 import { usePoolStats } from 'src/pages/Pools/usePoolStats'
 
 const useStyles = makeStyles((theme: Theme) => ({
@@ -71,6 +74,42 @@ function RebalanceModalHeader(props) {
   }
 }
 
+function NetworkSelectionSection(props) {
+  const networks = props.networksWithYields
+  const chainSlug = props.chainSlug
+  const destinationNetworkId = props.destinationNetworkId
+
+  // exclude the source network
+  const potentialDestinationNetworkObjects = networks.reduce((acc, network) => {
+    if (network[0] !== chainSlug) {
+      acc.push(findNetworkBySlug(network[0]))
+    }
+    return acc
+  }, [])
+
+  type NetworkAPRTupleType = [string, number, string]
+    
+  return (
+    <>
+      <p>Select network to transfer to:</p>
+      <RaisedNetworkSelector 
+        selectedNetwork={findNetworkBySlug(networkIdToSlug(destinationNetworkId))} 
+        onSelect={e => props.setDestinationNetwork(e.target.value)} 
+        availableNetworks={potentialDestinationNetworkObjects} 
+        />
+      <br />
+      {networks.map((tuple: NetworkAPRTupleType, index: number) => (
+        <>
+          <br />
+          <div key={index}>
+            <p>{tuple[0]} | {tuple[2]}</p>
+          </div>
+        </>
+      ))}
+    </>
+  )
+}
+
 function RebalanceModalFooter(props) {
   const currentStep = 1
   const totalSteps = 5
@@ -90,48 +129,28 @@ export function RebalanceModal(props) {
   const { address, provider, onboard, connectedNetworkId, checkConnectedNetworkId } = useWeb3Context()
   const signer = provider?.getSigner()
 
-  const { selectedNetwork, selectSourceNetwork } = useSelectedNetwork({ l2Only: true })
-  const chainSlug = selectedNetwork?.slug ?? ""
+  const { poolStats } = usePoolStats()
 
   const { selectedBridge } = useApp()
   const tokenSymbol = selectedBridge?.getTokenSymbol() ?? ""
 
-  const { poolStats } = usePoolStats()
+  const { selectedNetwork, selectSourceNetwork } = useSelectedNetwork({ l2Only: true })
+  const chainSlug: string = selectedNetwork?.slug ?? ""
 
-  const [destinationNetworkId, setDestinationNetworkId] = useState(420)
   const [erc20PositionBalance, setERC20PositionBalance] = useState<string>("")
   const [bridgeTxHash, setBridgeTxHash] = useState<string>("")
   const [bondTxHash, setBondTxHash] = useState<string>("")
   const [numberOfBridgedTokensReceived, setNumberOfBridgedTokensReceived] = useState<string>("")
 
+  const [networksWithYields, setNetworksWithYields] = useState<[string, number, string][]>([])
+
+  useEffect(() => { setNetworksWithYields(getNetworksWithYields()) }, [])
+
+  const [destinationNetworkId, setDestinationNetworkId] = useState<number>(10)
+
   const gasLimit = 700000
 
-
   /* REBALANCE FUNCTIONS */
-
-  // use yields and user input to determine the destination chain
-  function setDestinationNetwork() {
-    console.dir(poolStats)
-
-    /*
-      Networks:
-        Arbitrum
-        Optimism
-        Gnosis
-        Polygon
-      Tokens:
-        ETH
-        USDC
-        DAI
-        USDT
-    */
-
-    const destinationId = 10 // 100 // 137 // 69 // 42161 //3
-
-    setDestinationNetworkId(destinationId)
-
-    console.log("Destination network ID set to:", destinationId)
-  }
 
   async function unstake() {
     const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
@@ -528,6 +547,7 @@ export function RebalanceModal(props) {
 
 
   /* DEBUG FUNCTIONS */
+
   function convertHTokens() {
     const contractAbi = saddleSwapAbi
 
@@ -543,14 +563,6 @@ export function RebalanceModal(props) {
     const minDy = 100000000000000
     const deadline = getDeadline(2)
     
-    /*
-      uint8 tokenIndexFrom,
-      uint8 tokenIndexTo,
-      uint256 dx,
-      uint256 minDy,
-      uint256 deadline
-    */
-    // Call the function on the contract instance
     contract.swap(
       tokenIndexFrom,
       tokenIndexTo,
@@ -576,6 +588,43 @@ export function RebalanceModal(props) {
 
 
   /* HELPER FUNCTIONS */
+
+  // get an array of potential networks, sorted by descending yield
+  function getNetworksWithYields(): [string, number, string][] {
+    try {
+      const allNetworks = poolStats
+      const chainNames = Object.keys(allNetworks)
+
+      const chainsWithTotalAPR = chainNames.reduce((acc: [string, number, string][], chain: string) => {
+        // if APR data is undefined, break
+        if (typeof allNetworks?.[chain]?.[tokenSymbol]?.totalApr === "undefined") {
+          return acc
+        }
+
+        // include chain only if there is APR
+        if (allNetworks[chain][tokenSymbol].totalApr > 0) {
+          acc.push([chain, allNetworks[chain][tokenSymbol].totalApr, allNetworks[chain][tokenSymbol].totalAprFormatted])
+        }
+
+        return acc
+      }, [])
+
+      // sort chains by APR
+      const chainsSortedByAPR = sortTuplesDescending(chainsWithTotalAPR)
+
+      console.log("Got networks:", chainsSortedByAPR)
+
+      return chainsSortedByAPR
+    } catch (error) {
+      console.error(error)
+
+      return []
+    }
+
+    function sortTuplesDescending(tupleArray: [string, number, string][]): [string, number, string][] {
+      return tupleArray.sort((a, b) => b[1] - a[1])
+    }
+  }
 
   async function approveToken(tokenAddress: string, spenderAddress: string, amount: string) {
     const allowanceAndApproveAbi = ["function allowance(address owner, address spender) public view returns (uint256)", "function approve(address spender, uint256 amount) external returns (bool)"]
@@ -616,6 +665,15 @@ export function RebalanceModal(props) {
     return await wethContract.withdraw(amountToUnwrap, { gasLimit: gasLimit })
   }
 
+  // use yields and user input to determine the destination chain
+  function setDestinationNetwork(chainSlug: string) {
+    const destinationId = networkSlugToId(chainSlug)
+
+    setDestinationNetworkId(networkSlugToId(chainSlug))
+
+    console.log("Destination network ID set to:", destinationId)
+  }
+
   function getDeadline(confirmTimeMinutes: number) {
     const currentTime = Math.floor(Date.now() / 1000)
     const deadline = currentTime + (confirmTimeMinutes * 60)
@@ -629,7 +687,9 @@ export function RebalanceModal(props) {
         <Card className="styles.card">
           <RebalanceModalHeader headerTitle="Rebalance staked position" />
           <br />
-          <button onClick={() => setDestinationNetwork()}>Set destination chain</button>
+          <NetworkSelectionSection networksWithYields={networksWithYields} chainSlug={chainSlug} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} />
+          <br />
+          <button onClick={() => setDestinationNetwork(chainSlug)}>Set destination chain</button>
           <button onClick={() => unstake()}>Unstake</button>
           <button onClick={() => withdrawPosition()}>Withdraw</button>
           <button onClick={() => unwrapIfNativeToken()}>Unwrap if native token</button>
@@ -643,6 +703,7 @@ export function RebalanceModal(props) {
           <button onClick={() => addLiquidity()}>Deposit</button>
           <button onClick={() => stake()}>Stake</button>
           <p> - </p>
+          <button onClick={() => getNetworksWithYields()}>Get networks</button>
           <button onClick={() => approveToken("0xDc38c5aF436B9652225f92c370A011C673FA7Ba5", "0xa50395bdEaca7062255109fedE012eFE63d6D402", "39014000550885654")}>Approve</button>
           <button onClick={() => convertHTokens()}>Convert hTokens</button>
           <button onClick={() => wrapETH("1000000000000000")}>Wrap ETH</button>
