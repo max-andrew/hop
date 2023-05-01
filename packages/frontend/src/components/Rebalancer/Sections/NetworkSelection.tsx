@@ -82,11 +82,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
         highlighted
         disabled={networksMatch && destinationNetworkId === 0}
         onClick={() => {
-          if (networksMatch) {
-            goToNextSection()
-          } else {
-            connectedNetworkId && checkConnectedNetworkId(networkSlugToId(chainSlug))
-          }
+          networksMatch ? goToNextSection() : connectedNetworkId && checkConnectedNetworkId(networkSlugToId(chainSlug))
         }}>
         { networksMatch ? "Select Network" : "Switch Networks" }
       </Button>

@@ -34,7 +34,7 @@ export function BridgeSection(props) {
 
     const amount: string = erc20PositionBalance
 
-    // if not native token, approve LP token spending
+    // if not native token, approve token spending
     if (!(tokenSymbol === "ETH" || (tokenSymbol === "DAI" && chainSlug === "gnosis"))) {
       try {
         setStatusMessage("Approving spending")
@@ -98,6 +98,8 @@ export function BridgeSection(props) {
     
     // bridge tokens
     try {
+      setStatusMessage("Sending tokens to bridge")
+
       const bridgeTx = await l2AmmWrapperContract.swapAndSend(
         destinationNetworkId,
         recipient,
@@ -117,7 +119,7 @@ export function BridgeSection(props) {
 
       await bridgeTx.wait()
         .then(() => {
-          console.log("Successfully sent tokens")
+          console.log("Successfully sent tokens with hash:", bridgeTx.hash)
           setStatusMessage("Successfully sent tokens")
           setIsTransacting(false)
           goToNextSection()

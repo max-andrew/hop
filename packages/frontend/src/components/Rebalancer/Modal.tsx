@@ -14,14 +14,13 @@ import { hopStakingRewardsContracts } from 'src/config/addresses'
 import { stakingRewardsAbi } from '@hop-protocol/core/abi'
 import saddleSwapAbi from '@hop-protocol/core/abi/generated/Swap.json'
 
-import { Grid, Box, Typography } from '@material-ui/core'
-import Button from 'src/components/buttons/Button'
 import Modal from 'src/components/modal/Modal'
 import { Footer } from 'src/components/Rebalancer/Footer'
 import { NetworkSelectionSection } from 'src/components/Rebalancer/Sections/NetworkSelection'
 import { UnstakeWithdrawSection } from 'src/components/Rebalancer/Sections/UnstakeWithdraw'
 import { UnwrapSection } from 'src/components/Rebalancer/Sections/Unwrap'
 import { BridgeSection } from 'src/components/Rebalancer/Sections/Bridge'
+import { BridgingStatusSection } from 'src/components/Rebalancer/Sections/BridgingStatus'
 
 
 export function RebalanceModal(props) {
@@ -43,10 +42,10 @@ export function RebalanceModal(props) {
   const [networksWithYields, setNetworksWithYields] = useState<[string, number, string][]>([])
   useEffect(() => { setNetworksWithYields(getNetworksWithYields()) }, [poolStats])
 
-  const [destinationNetworkId, setDestinationNetworkId] = useState<number>(chainSlug === "optimism" ? networkSlugToId("arbitrum") : networkSlugToId("optimism"))
+  const [destinationNetworkId, setDestinationNetworkId] = useState<number>(421613/*chainSlug === "optimism" ? networkSlugToId("arbitrum") : networkSlugToId("optimism")*/)
   // set default to highest APR network
   useEffect(() => {
-    if (typeof networksWithYields !== "undefined") {
+    if (typeof networksWithYields !== "undefined" && currentStep === 0) {
       // exclude the source network
       const potentialDestinationNetworkIds: number[] = networksWithYields.reduce((acc: number[], network) => {
         if (network[0] !== chainSlug) {
@@ -61,68 +60,20 @@ export function RebalanceModal(props) {
 
   const [erc20PositionBalance, setERC20PositionBalance] = useState<string>("")
   const [bridgeTxHash, setBridgeTxHash] = useState<string>("")
-  const [bondTxHash, setBondTxHash] = useState<string>("")
   const [numberOfBridgedTokensReceived, setNumberOfBridgedTokensReceived] = useState<string>("")
 
-  const [currentStep, setCurrentStep] = useState<number>(0)
+  const [currentStep, setCurrentStep] = useState<number>(4)
   const rebalanceSections = [
     <NetworkSelectionSection goToNextSection={() => setCurrentStep(currentStep + 1)} checkConnectedNetworkId={checkConnectedNetworkId} chainSlug={chainSlug} connectedNetworkId={connectedNetworkId} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} networksWithYields={networksWithYields} />,
     <UnstakeWithdrawSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} gasLimit={gasLimit} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} setERC20PositionBalance={setERC20PositionBalance} setShowRebalanceModal={setShowRebalanceModal} getDeadline={getDeadline} approveToken={approveToken} />,
     <UnwrapSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} gasLimit={gasLimit} erc20PositionBalance={erc20PositionBalance} getHumanErrorMessage={getHumanErrorMessage} />,
     <BridgeSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} destinationNetworkId={destinationNetworkId} signer={signer} gasLimit={gasLimit} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} erc20PositionBalance={erc20PositionBalance} setBridgeTxHash={setBridgeTxHash} getDeadline={getDeadline} approveToken={approveToken}  />,
+    <BridgingStatusSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} provider={provider} connectedNetworkId={connectedNetworkId} destinationNetworkId={destinationNetworkId} changeNetwork={changeNetwork} bridgeTxHash={bridgeTxHash} setNumberOfBridgedTokensReceived={setNumberOfBridgedTokensReceived} getHumanErrorMessage={getHumanErrorMessage} getDeadline={getDeadline} />,
     <p>End</p>
   ]
 
 
   /* REBALANCE FUNCTIONS */
-
-  async function checkBridgeStatusAndSetBondHash() {
-    const bridgeStatusURL: string = `https://api.hop.exchange/v1/transfer-status?transactionHash=${bridgeTxHash}&network=${reactAppNetwork}`
-
-    const response = await fetch(bridgeStatusURL)
-    const data = await response.json()
-
-    if (typeof data.error !== "undefined") {
-      console.log("Error checking bridge status")
-      return
-    }
-
-    const deadline = getDeadline(3)
-    const pollingIntervalInSeconds = 10
-
-    while (getDeadline(0) < deadline) {
-      const response = await fetch(bridgeStatusURL)
-      const data = await response.json()
-
-      if (data.bonded) {
-        const bondHash = data.bondTransactionHash
-
-        setBondTxHash(bondHash)
-        console.log("Successfully bridged tokens with hash:", bondHash)
-        return
-      } else {
-        console.log("Could not yet confirm successful bridging, rechecking")
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 1000 * pollingIntervalInSeconds))
-    }
-    console.log("Unable to confirm successful bridge transaction")
-  }
-
-  /* CHANGE NETWORK */
-
-  async function setBridgedTokenData() {
-    const bondTxReceipt = await provider?.getTransactionReceipt(bondTxHash)
-    let tokensReceived: string
-
-    if (typeof bondTxReceipt?.logs !== "undefined") {
-      tokensReceived = parseInt(bondTxReceipt.logs[11].data, 16).toString()
-      console.log("Bridged token balance:", tokensReceived)
-      setNumberOfBridgedTokensReceived(tokensReceived)
-    } else {
-      console.log("Could not get bond data")
-    }
-  }
 
   // wrap if ETH or DAI on Gnosis
   async function wrapIfNativeToken() {
@@ -250,20 +201,20 @@ export function RebalanceModal(props) {
     console.log("destinationNetworkId:", destinationNetworkId)
     console.log("erc20PositionBalance:", erc20PositionBalance)
     console.log("bridgeTxHash:", bridgeTxHash)
-    console.log("bondTxHash:", bondTxHash)
     console.log("numberOfBridgedTokensReceived:", numberOfBridgedTokensReceived)
   }
 
 
   /* HELPER FUNCTIONS */
 
-  async function changeNetwork(newChainId: number): Promise<void> {
+  async function changeNetwork(newChainId: number): Promise<boolean> {
     try {
-      checkConnectedNetworkId(destinationNetworkId)
       const event = { target: { value: networkIdToSlug(newChainId) } }
       selectSourceNetwork(event as React.ChangeEvent<{ value: any }>)
+      return await checkConnectedNetworkId(newChainId)
     } catch (error) {
       console.error(error)
+      return false
     }
   }
 
