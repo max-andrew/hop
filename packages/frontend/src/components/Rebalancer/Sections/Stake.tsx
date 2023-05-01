@@ -16,7 +16,7 @@ export function StakeSection(props) {
   const address = props.address
   const getHumanErrorMessage = props.getHumanErrorMessage
   const approveToken = props.approveToken
-  const getTokensAreStaked = props.getTokensAreStaked
+  const close = props.close
 
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")
@@ -47,11 +47,18 @@ export function StakeSection(props) {
         await approveTx.wait()
           .then(() => {
             console.log("Approved successfully")
+            setStatusMessage("Approved successfully")
           })
-          .catch(error => console.error(error))
+          .catch(error => {
+            console.error(error)
+            setStatusMessage(getHumanErrorMessage(error))
+            setIsTransacting(false)
+          })
       }
     } catch (error) {
       console.error(error)
+      setStatusMessage(getHumanErrorMessage(error))
+      setIsTransacting(false)
       return
     }
 
@@ -61,10 +68,21 @@ export function StakeSection(props) {
     try {
       const stakeTx = await stakingContract.stake(balance, { gasLimit: gasLimit })
       await stakeTx.wait()
-        .then(() => console.log("Staked successfully"))
-        .catch(error => console.error(error))
+        .then(() => {
+          console.log("Staked successfully")
+          setStatusMessage("Approved successfully")
+          setIsTransacting(false)
+          close()
+        })
+        .catch(error => {
+          console.error(error)
+          setStatusMessage(getHumanErrorMessage(error))
+          setIsTransacting(false)
+        })
     } catch (error) {
       console.error(error)
+      setStatusMessage(getHumanErrorMessage(error))
+      setIsTransacting(false)
     }
   }
 
@@ -78,9 +96,9 @@ export function StakeSection(props) {
         fullWidth
         onClick={() => {
           setIsTransacting(true)
-          console.log("tokens are not staked")
+          stake()
         }}>
-        Deposit
+        Stake
       </Button>
       <StatusMessage message={statusMessage} />
     </>
