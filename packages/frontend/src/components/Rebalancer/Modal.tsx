@@ -21,6 +21,7 @@ import { UnstakeWithdrawSection } from 'src/components/Rebalancer/Sections/Unsta
 import { UnwrapSection } from 'src/components/Rebalancer/Sections/Unwrap'
 import { BridgeSection } from 'src/components/Rebalancer/Sections/Bridge'
 import { BridgingStatusSection } from 'src/components/Rebalancer/Sections/BridgingStatus'
+import { WrapSection } from 'src/components/Rebalancer/Sections/Wrap'
 
 
 export function RebalanceModal(props) {
@@ -62,48 +63,19 @@ export function RebalanceModal(props) {
   const [bridgeTxHash, setBridgeTxHash] = useState<string>("")
   const [numberOfBridgedTokensReceived, setNumberOfBridgedTokensReceived] = useState<string>("")
 
-  const [currentStep, setCurrentStep] = useState<number>(4)
+  const [currentStep, setCurrentStep] = useState<number>(5)
   const rebalanceSections = [
     <NetworkSelectionSection goToNextSection={() => setCurrentStep(currentStep + 1)} checkConnectedNetworkId={checkConnectedNetworkId} chainSlug={chainSlug} connectedNetworkId={connectedNetworkId} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} networksWithYields={networksWithYields} />,
     <UnstakeWithdrawSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} gasLimit={gasLimit} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} setERC20PositionBalance={setERC20PositionBalance} setShowRebalanceModal={setShowRebalanceModal} getDeadline={getDeadline} approveToken={approveToken} />,
     <UnwrapSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} gasLimit={gasLimit} erc20PositionBalance={erc20PositionBalance} getHumanErrorMessage={getHumanErrorMessage} />,
     <BridgeSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} destinationNetworkId={destinationNetworkId} signer={signer} gasLimit={gasLimit} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} erc20PositionBalance={erc20PositionBalance} setBridgeTxHash={setBridgeTxHash} getDeadline={getDeadline} approveToken={approveToken}  />,
     <BridgingStatusSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} provider={provider} connectedNetworkId={connectedNetworkId} destinationNetworkId={destinationNetworkId} changeNetwork={changeNetwork} bridgeTxHash={bridgeTxHash} setNumberOfBridgedTokensReceived={setNumberOfBridgedTokensReceived} getHumanErrorMessage={getHumanErrorMessage} getDeadline={getDeadline} />,
+    <WrapSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} numberOfBridgedTokensReceived={numberOfBridgedTokensReceived} signer={signer} gasLimit={gasLimit} getHumanErrorMessage={getHumanErrorMessage} />,
     <p>End</p>
   ]
 
 
   /* REBALANCE FUNCTIONS */
-
-  // wrap if ETH or DAI on Gnosis
-  async function wrapIfNativeToken() {
-    if (tokenSymbol === "ETH") {
-      try {
-        const wrapTx = await wrapETH(numberOfBridgedTokensReceived)
-        await wrapTx.wait()
-          .then(() => console.log("Successfully wrapped ETH"))
-          .catch(error => console.error(error))
-      } catch (error) {
-        console.error(error)
-      }
-    } else if (tokenSymbol === "DAI" && chainSlug === "gnosis") {
-      const wDAIContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-      const wDAIAbi = ["function deposit() payable"]
-
-      const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
-
-      try {
-        const wrapTx = await wDAIContract.deposit({ value: numberOfBridgedTokensReceived, gasLimit: gasLimit })
-        await wrapTx.wait()
-          .then(() => console.log("Successfully wrapped DAI"))
-          .catch(error => console.error(error))
-      } catch (error) {
-        console.error(error)
-      }
-    } else {
-      console.log("Token is ERC20, no wrap necessary")
-    }
-  }
 
   // deposit tokens
   async function addLiquidity() {
@@ -222,7 +194,7 @@ export function RebalanceModal(props) {
   function getNetworksWithYields(): [string, number, string][] {
     try {
       const allNetworks = poolStats
-      const chainNames = Object.keys(allNetworks)
+      const chainNames = allNetworks ? Object.keys(allNetworks) : []
 
       const chainsWithTotalAPR = chainNames.reduce((acc: [string, number, string][], chain: string) => {
         // if APR data is undefined, break
@@ -293,15 +265,6 @@ export function RebalanceModal(props) {
     } else {
       console.log("Allowance is equal to or greater than amount, no approval necessary")
     }
-  }
-
-  async function wrapETH(amountToWrap: string) {
-    const wETHContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-    const wethAbi = ["function deposit() payable"]
-
-    const wethContract = new ethers.Contract(wETHContractAddress, wethAbi, signer)
-
-    return await wethContract.deposit({ value: amountToWrap, gasLimit: gasLimit })
   }
 
   // use yields and user input to determine the destination chain

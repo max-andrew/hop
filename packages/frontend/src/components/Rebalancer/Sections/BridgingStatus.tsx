@@ -24,7 +24,6 @@ export function BridgingStatusSection(props) {
 
   // listen for the right chain connection
   useEffect(() => {
-    console.log(connectedNetworkId)
     if (connectedNetworkId === destinationNetworkId && connectedNetworkId === networkSlugToId(chainSlug)) {
       setNetworksMatch(true)
     } else {

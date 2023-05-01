@@ -1,43 +1,41 @@
 import React, { useState } from 'react'
-
 import { ethers } from 'ethers'
 import * as addresses from '@hop-protocol/core/addresses'
-
 import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
 import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/StatusMessage'
 
-export function UnwrapSection(props) {
-  const tokenSymbol = props.tokenSymbol
-  const reactAppNetwork = props.reactAppNetwork
-  const signer = props.signer
-  const chainSlug = props.chainSlug
-  const gasLimit = props.gasLimit
-  const erc20PositionBalance = props.erc20PositionBalance
-  const getHumanErrorMessage = props.getHumanErrorMessage
+export function WrapSection(props) {
   const goToNextSection = props.goToNextSection
+  const reactAppNetwork = props.reactAppNetwork
+  const chainSlug = props.chainSlug
+  const tokenSymbol = props.tokenSymbol
+  const numberOfBridgedTokensReceived = props.numberOfBridgedTokensReceived
+  const signer = props.signer
+  const gasLimit = props.gasLimit
+  const getHumanErrorMessage = props.getHumanErrorMessage
 
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")
 
-  async function unwrapETH(amountToUnwrap: string) {
+  async function wrapETH(amountToWrap: string) {
     const wETHContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-    const wethAbi = ["function withdraw(uint wad) public"]
+    const wethAbi = ["function deposit() payable"]
 
     const wethContract = new ethers.Contract(wETHContractAddress, wethAbi, signer)
 
-    return await wethContract.withdraw(amountToUnwrap, { gasLimit: gasLimit })
+    return await wethContract.deposit({ value: amountToWrap, gasLimit: gasLimit })
   }
 
-  // unwrap if ETH or DAI on Gnosis
-  async function unwrapIfNativeToken() {
+  // wrap if ETH or DAI on Gnosis
+  async function wrapIfNativeToken() {
     if (tokenSymbol === "ETH") {
       try {
-        const unwrapTx = await unwrapETH(erc20PositionBalance)
-        await unwrapTx.wait()
+        const wrapTx = await wrapETH(numberOfBridgedTokensReceived)
+        await wrapTx.wait()
           .then(() => {
-            console.log("Successfully unwrapped ETH")
-            setStatusMessage("Successfully unwrapped ETH")
+            console.log("Successfully wrapped ETH")
+            setStatusMessage("Successfully wrapped ETH")
             setIsTransacting(false)
             goToNextSection()
           })
@@ -53,16 +51,16 @@ export function UnwrapSection(props) {
       }
     } else if (tokenSymbol === "DAI" && chainSlug === "gnosis") {
       const wDAIContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-      const wDAIAbi = ["function withdraw(uint256 wad) external"]
+      const wDAIAbi = ["function deposit() payable"]
 
       const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
 
       try {
-        const unwrapTx = await wDAIContract.withdraw(erc20PositionBalance, { gasLimit: gasLimit })
-        await unwrapTx.wait()
+        const wrapTx = await wDAIContract.deposit({ value: numberOfBridgedTokensReceived, gasLimit: gasLimit })
+        await wrapTx.wait()
           .then(() => {
-            console.log("Successfully unwrapped DAI")
-            setStatusMessage("Successfully unwrapped ETH")
+            console.log("Successfully wrapped DAI")
+            setStatusMessage("Successfully wrapped DAI")
             setIsTransacting(false)
             goToNextSection()
           })
@@ -77,27 +75,24 @@ export function UnwrapSection(props) {
         setIsTransacting(false)
       }
     } else {
-      console.log("Token is ERC20, no unwrap necessary")
-      setStatusMessage("No unwrap necessary")
-      setIsTransacting(false)
-      goToNextSection()
+      console.log("Token is ERC20, no wrap necessary")
     }
   }
 
   return (
     <>
-      <SectionHeader title="Unwrap" subtitle="Convert your tokens to the native version" />
+      <SectionHeader title="Wrap" subtitle="Wrap native tokens to deposit" />
       <Button
         highlighted={!isTransacting}
         loading={isTransacting}
         large
         fullWidth
         onClick={() => {
-          setStatusMessage("Unwrapping tokens")
+          setStatusMessage("Wrapping tokens")
           setIsTransacting(true)
-          unwrapIfNativeToken()
+          wrapIfNativeToken()
         }}>
-        Unwrap
+        Wrap
       </Button>
       <StatusMessage message={statusMessage} />
     </>

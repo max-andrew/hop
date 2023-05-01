@@ -8,7 +8,6 @@ import { hopStakingRewardsContracts } from 'src/config/addresses'
 import { stakingRewardsAbi } from '@hop-protocol/core/abi'
 import saddleSwapAbi from '@hop-protocol/core/abi/generated/Swap.json'
 
-import { Box, Typography } from '@material-ui/core'
 import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
 import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/StatusMessage'
