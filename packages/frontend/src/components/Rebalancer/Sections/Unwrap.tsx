@@ -34,7 +34,6 @@ export function UnwrapSection(props) {
   async function unwrapIfNativeToken() {
     if (tokenSymbol === "ETH") {
       try {
-        // error unwrapping bc erc20PositionBalance is undefined
         const unwrapTx = await unwrapETH(erc20PositionBalance)
         await unwrapTx.wait()
           .then(() => {

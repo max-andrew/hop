@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-
 import { ethers, BigNumber, Contract } from 'ethers'
 
 import { useWeb3Context } from 'src/contexts/Web3Context'
@@ -11,15 +10,10 @@ import { networkIdToSlug, networkSlugToId } from 'src/utils/networks'
 import * as addresses from '@hop-protocol/core/addresses'
 import * as networks from '@hop-protocol/core/networks'
 import * as metadata from '@hop-protocol/core/metadata'
-
 import { hopStakingRewardsContracts } from 'src/config/addresses'
 import { stakingRewardsAbi } from '@hop-protocol/core/abi'
 import saddleSwapAbi from '@hop-protocol/core/abi/generated/Swap.json'
 
-// import Transaction from 'src/models/Transaction'
-
-import { isDarkMode } from 'src/theme/theme'
-import { makeStyles, Theme } from '@material-ui/core/styles'
 import { Grid, Box, Typography } from '@material-ui/core'
 import Button from 'src/components/buttons/Button'
 import Modal from 'src/components/modal/Modal'
@@ -75,7 +69,7 @@ export function RebalanceModal(props) {
     <NetworkSelectionSection goToNextSection={() => setCurrentStep(currentStep + 1)} checkConnectedNetworkId={checkConnectedNetworkId} chainSlug={chainSlug} connectedNetworkId={connectedNetworkId} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} networksWithYields={networksWithYields} />,
     <UnstakeWithdrawSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} gasLimit={gasLimit} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} setERC20PositionBalance={setERC20PositionBalance} setShowRebalanceModal={setShowRebalanceModal} getDeadline={getDeadline} approveToken={approveToken} />,
     <UnwrapSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} gasLimit={gasLimit} erc20PositionBalance={erc20PositionBalance} getHumanErrorMessage={getHumanErrorMessage} />,
-    <BridgeSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} destinationNetworkId={destinationNetworkId} signer={signer} gasLimit={gasLimit} getTokensAreStaked={getTokensAreStaked} address={address} erc20PositionBalance={erc20PositionBalance} setBridgeTxHash={setBridgeTxHash} getDeadline={getDeadline} approveToken={approveToken}  />,
+    <BridgeSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} destinationNetworkId={destinationNetworkId} signer={signer} gasLimit={gasLimit} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} erc20PositionBalance={erc20PositionBalance} setBridgeTxHash={setBridgeTxHash} getDeadline={getDeadline} approveToken={approveToken}  />,
     <p>End</p>
   ]
 
@@ -338,6 +332,8 @@ export function RebalanceModal(props) {
     const currentAllowanceBN = BigNumber.from(currentAllowance)
     const amountBN = BigNumber.from(amount)
 
+    console.log(currentAllowanceBN.toString(), amountBN.toString())
+
     // check if the current allowance is less than the required amount
     if (currentAllowanceBN.lt(amountBN)) {
       console.log("Allowance is less than amount, approving higher limit")
@@ -373,7 +369,7 @@ export function RebalanceModal(props) {
   }
 
   function getHumanErrorMessage(error: Error) {
-    return "Error: " + error?.message.split(" (action=")[0]
+    return "Error: " + error?.message.split(" (action=")[0].split(" [ See: ")[0]
   }
 
 

@@ -1,8 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { ethers, BigNumber } from 'ethers'
 import { networkIdToSlug } from 'src/utils/networks'
 import * as addresses from '@hop-protocol/core/addresses'
 import L2_AmmWrapperAbi from '@hop-protocol/core/abi/generated/L2_AmmWrapper.json'
+import Button from 'src/components/buttons/Button'
+import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
+import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/StatusMessage'
 
 export function BridgeSection(props) {
   const reactAppNetwork = props.reactAppNetwork
@@ -16,7 +19,12 @@ export function BridgeSection(props) {
   const approveToken = props.approveToken
   const getDeadline = props.getDeadline
   const destinationNetworkId = props.destinationNetworkId
+  const getHumanErrorMessage = props.getHumanErrorMessage
   const setBridgeTxHash = props.setBridgeTxHash
+  const goToNextSection = props.goToNextSection
+
+  const [isTransacting, setIsTransacting] = useState<boolean>(false)
+  const [statusMessage, setStatusMessage] = useState<string>("")
 
   // bridge canonical tokens
   async function swapAndSend() {
@@ -26,19 +34,32 @@ export function BridgeSection(props) {
 
     const amount: string = erc20PositionBalance
 
-    // approve LP token spending
-    try {
-      const approveTx = await approveToken(canonicalTokenContractAddress, l2AmmWrapperContractAddress, amount)
-      if (typeof approveTx !== "undefined") {
-        await approveTx.wait()
-          .then(() => {
-            console.log("Approved successfully")
-          })
-          .catch(error => console.error(error))
+    // if not native token, approve LP token spending
+    if (!(tokenSymbol === "ETH" || (tokenSymbol === "DAI" && chainSlug === "gnosis"))) {
+      try {
+        setStatusMessage("Approving spending")
+
+        const approveTx = await approveToken(canonicalTokenContractAddress, l2AmmWrapperContractAddress, amount)
+        if (typeof approveTx !== "undefined") {
+          await approveTx.wait()
+            .then(() => {
+              console.log("Approved successfully")
+              setStatusMessage("Successfully approved spending")
+            })
+            .catch(error => {
+              console.error(error)
+              setStatusMessage(getHumanErrorMessage(error))
+              setIsTransacting(false)
+            })
+        }
+      } catch (error) {
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error))
+        setIsTransacting(false)
+        return
       }
-    } catch (error) {
-      console.error(error)
-      return
+    } else {
+      setStatusMessage("No approval necessary")
     }
 
     const recipient = address?.address
@@ -65,6 +86,8 @@ export function BridgeSection(props) {
       console.log("Bonder fee:", bonderFee)
     } catch (error) {
       console.error(error)
+      setStatusMessage(getHumanErrorMessage(error))
+      setIsTransacting(false)
       return
     }
 
@@ -93,12 +116,40 @@ export function BridgeSection(props) {
       setBridgeTxHash(bridgeTx.hash)
 
       await bridgeTx.wait()
-        .then(() => console.log("Successfully sent tokens"))
-        .catch(error => console.error(error))
+        .then(() => {
+          console.log("Successfully sent tokens")
+          setStatusMessage("Successfully sent tokens")
+          setIsTransacting(false)
+          goToNextSection()
+        })
+        .catch(error => {
+          console.error(error)
+          setStatusMessage(getHumanErrorMessage(error))
+          setIsTransacting(false)
+        })
     } catch (error) {
       console.error(error)
+      setStatusMessage(getHumanErrorMessage(error))
+      setIsTransacting(false)
     }
   }
 
-  return <p>Bridge</p>
+  return (
+    <>
+      <SectionHeader title="Bridge" subtitle="Send your tokens to the destination network" />
+      <Button
+        highlighted={!isTransacting}
+        loading={isTransacting}
+        large
+        fullWidth
+        onClick={() => {
+          setStatusMessage("Bridging tokens")
+          setIsTransacting(true)
+          swapAndSend()
+        }}>
+        Bridge
+      </Button>
+      <StatusMessage message={statusMessage} />
+    </>
+  )
 }

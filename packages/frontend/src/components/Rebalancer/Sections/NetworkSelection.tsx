@@ -31,16 +31,6 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
 
   const [networksMatch, setNetworksMatch] = useState<boolean>(false)
 
-  // push user to connect to the right chain
-  useEffect(() => {
-    if (connectedNetworkId && connectedNetworkId !== networkSlugToId(chainSlug)) {
-      console.log("Not connected to source network")
-      checkConnectedNetworkId(networkSlugToId(chainSlug))
-    } else {
-      setNetworksMatch(true)
-    }
-  }, [])
-
   // listen for the right chain connection
   useEffect(() => {
     if (connectedNetworkId === networkSlugToId(chainSlug)) {
