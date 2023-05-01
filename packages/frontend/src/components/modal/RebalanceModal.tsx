@@ -30,20 +30,19 @@ const useStyles = makeStyles((theme: Theme) => ({
 
 }))
 
-function RebalanceModalHeader(props) {
-  const headerTitle = props.headerTitle
+function RebalanceModalFooter(props) {
+  const currentStep = 0
+  const totalSteps = 5
 
-  if (typeof headerTitle !== "undefined") {
-    return (
-      <>
-        <Text mono style={{ fontSize: 12, textTransform: "uppercase", textAlign: "center" }}>{headerTitle}</Text>
-        <br />
-        <Divider />
-      </>
-    )
-  } else {
-    return <></>
-  }
+  return (
+    <>
+      <Divider />
+      <br />
+      <Box textAlign="center">
+        <Typography variant="body2" component="span" color="secondary">{Math.round((currentStep / totalSteps) * 100)}%</Typography>
+      </Box>
+    </>
+  )
 }
 
 type NetworkAPRTupleType = [string, number, string]
@@ -71,7 +70,9 @@ function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
 
   return (
     <>
-      <Typography>Select the network to transfer to</Typography>
+      <Typography variant="h4" color="textPrimary">Select destination</Typography>
+      <Typography variant="subtitle2" color="textSecondary">Choose the network to transfer your position to</Typography>
+      <br />
       <br />
       <Grid container alignItems="center">
         <Grid item xs>
@@ -87,29 +88,14 @@ function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
         <Grid item xs>
           <Box display="flex" flexDirection="column" alignItems="center">
             {networks.map((tuple: NetworkAPRTupleType, index: number) => (
-              <>
-                <br />
-                <div key={index}>
-                  <p>{tuple[0]} | {tuple[2]}</p>
-                </div>
-              </>
+                <Box key={index} my={1}>
+                  <Typography variant="body1" color="textSecondary" align="right">{tuple[0]}</Typography>
+                  <Typography variant="h3">{tuple[2]}</Typography>
+                </Box>
             ))}
           </Box>
         </Grid>
       </Grid>
-    </>
-  )
-}
-
-function RebalanceModalFooter(props) {
-  const currentStep = 1
-  const totalSteps = 5
-
-  return (
-    <>
-      <Divider />
-      <br />
-      <Text mono style={{ fontSize: 12, textTransform: "uppercase", textAlign: "center" }}>Step {currentStep}/{totalSteps}</Text>
     </>
   )
 }
@@ -687,8 +673,6 @@ export function RebalanceModal(props) {
     return (
       <div className="styles.root">
         <Modal onClose={() => props.setShowRebalanceModal(false)}>
-          <RebalanceModalHeader headerTitle="Rebalance staked position" />
-          <br />
           <NetworkSelectionSection networksWithYields={networksWithYields} chainSlug={chainSlug} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} />
           <br />
           <button onClick={() => setDestinationNetwork(chainSlug)}>Set destination chain</button>
