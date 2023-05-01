@@ -23,42 +23,11 @@ import { isDarkMode } from 'src/theme/theme'
 import { makeStyles, Theme } from '@material-ui/core/styles'
 import { Grid, Card, Divider, Box, Typography } from '@material-ui/core'
 import Modal from 'src/components/modal/Modal'
-import { StyledModal } from 'src/components/modal/StyledModal'
 import { Text } from 'src/components/ui/Text'
 import { RaisedNetworkSelector } from 'src/components/NetworkSelector/RaisedNetworkSelector'
 
 const useStyles = makeStyles((theme: Theme) => ({
-  root: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    zIndex: 4,
-    overflow: 'auto',
-    transition: 'all 0.15s ease-out',
-    background: '#00000070',
-    '&.entering': {
-      background: 'transparent',
-    },
-    '&.entered': {
-      background: isDarkMode(theme) ? '#0000005a' : '#f4f4f491',
-    },
-    '&.exiting': {
-      background: '#f4f4f491',
-    },
-    '&.exited': {
-      background: 'transparent',
-    },
-  },
-  card: {
-    position: 'relative',
-    padding: 0,
-    overflow: 'auto',
-    maxHeight: '100%',
-    border: isDarkMode(theme) ? '1px solid #353535' : 'none',
-    boxShadow: isDarkMode(theme) ? 'none' : theme.boxShadow.card,
-  }
+
 }))
 
 function RebalanceModalHeader(props) {
@@ -77,25 +46,34 @@ function RebalanceModalHeader(props) {
   }
 }
 
-function NetworkSelectionSection(props) {
+type NetworkAPRTupleType = [string, number, string]
+
+interface NetworkSelectionSectionProps {
+  networksWithYields: NetworkAPRTupleType[],
+  chainSlug: string,
+  destinationNetworkId: number,
+  setDestinationNetwork: (chainSlug: string) => void
+}
+
+function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
   const networks = props.networksWithYields
   const chainSlug = props.chainSlug
   const destinationNetworkId = props.destinationNetworkId
 
   // exclude the source network
-  const potentialDestinationNetworkObjects = networks.reduce((acc, network) => {
-    if (network[0] !== chainSlug) {
-      acc.push(findNetworkBySlug(network[0]))
+  const potentialDestinationNetworkObjects = networks.reduce((acc: Network[], network) => {
+    const foundNetwork = findNetworkBySlug(network[0])
+    if (foundNetwork && network[0] !== chainSlug) {
+      acc.push(foundNetwork)
     }
     return acc
   }, [])
 
-  type NetworkAPRTupleType = [string, number, string]
-    
   return (
     <>
       <Typography>Select the network to transfer to</Typography>
-      <Grid container alignItems="center" justifyContent="center">
+      <br />
+      <Grid container alignItems="center">
         <Grid item xs>
           <Box display="flex" alignItems="center" justifyContent="center">
             <RaisedNetworkSelector 
@@ -106,8 +84,8 @@ function NetworkSelectionSection(props) {
           </Box>
         </Grid>
         <Divider orientation="vertical" flexItem />
-        <Grid item xs justify="center">
-          <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center">
+        <Grid item xs>
+          <Box display="flex" flexDirection="column" alignItems="center">
             {networks.map((tuple: NetworkAPRTupleType, index: number) => (
               <>
                 <br />
@@ -119,7 +97,6 @@ function NetworkSelectionSection(props) {
           </Box>
         </Grid>
       </Grid>
-      <br />
     </>
   )
 }
@@ -639,8 +616,6 @@ export function RebalanceModal(props) {
       // sort chains by APR
       const chainsSortedByAPR = sortTuplesDescending(chainsWithTotalAPR)
 
-      console.log("Got networks:", chainsSortedByAPR)
-
       return chainsSortedByAPR
     } catch (error) {
       console.error(error)
@@ -696,7 +671,7 @@ export function RebalanceModal(props) {
   function setDestinationNetwork(chainSlug: string) {
     const destinationId = networkSlugToId(chainSlug)
 
-    setDestinationNetworkId(networkSlugToId(chainSlug))
+    setDestinationNetworkId(destinationId)
 
     console.log("Destination network ID set to:", destinationId)
   }
@@ -711,8 +686,7 @@ export function RebalanceModal(props) {
   if (props.showRebalanceModal) {
     return (
       <div className="styles.root">
-        <StyledModal>
-        <Card className="styles.card">
+        <Modal onClose={() => props.setShowRebalanceModal(false)}>
           <RebalanceModalHeader headerTitle="Rebalance staked position" />
           <br />
           <NetworkSelectionSection networksWithYields={networksWithYields} chainSlug={chainSlug} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} />
@@ -736,13 +710,10 @@ export function RebalanceModal(props) {
           <button onClick={() => convertHTokens()}>Convert hTokens</button>
           <button onClick={() => wrapETH("1000000000000000")}>Wrap ETH</button>
           <button onClick={() => debugTransaction()}>Debug</button>
-          <p> - </p>
-          <button onClick={() => props.setShowRebalanceModal(false)}>Close</button>
           <br />
           <br />
           <RebalanceModalFooter />
-        </Card>
-        </StyledModal>
+        </Modal>
       </div>
     )
   } else {
