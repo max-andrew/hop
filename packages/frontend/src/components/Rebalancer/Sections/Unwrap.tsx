@@ -1,8 +1,6 @@
 import React, { useState } from 'react'
-
 import { ethers } from 'ethers'
 import * as addresses from '@hop-protocol/core/addresses'
-
 import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
 import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/StatusMessage'

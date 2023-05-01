@@ -7,12 +7,6 @@ import { useSelectedNetwork } from 'src/hooks'
 import { reactAppNetwork } from 'src/config'
 import { usePoolStats } from 'src/pages/Pools/usePoolStats'
 import { networkIdToSlug, networkSlugToId } from 'src/utils/networks'
-import * as addresses from '@hop-protocol/core/addresses'
-import * as networks from '@hop-protocol/core/networks'
-import * as metadata from '@hop-protocol/core/metadata'
-import { hopStakingRewardsContracts } from 'src/config/addresses'
-import { stakingRewardsAbi } from '@hop-protocol/core/abi'
-import saddleSwapAbi from '@hop-protocol/core/abi/generated/Swap.json'
 
 import Modal from 'src/components/modal/Modal'
 import { Footer } from 'src/components/Rebalancer/Footer'
@@ -22,6 +16,8 @@ import { UnwrapSection } from 'src/components/Rebalancer/Sections/Unwrap'
 import { BridgeSection } from 'src/components/Rebalancer/Sections/Bridge'
 import { BridgingStatusSection } from 'src/components/Rebalancer/Sections/BridgingStatus'
 import { WrapSection } from 'src/components/Rebalancer/Sections/Wrap'
+import { DepositSection } from 'src/components/Rebalancer/Sections/Deposit'
+import { StakeSection } from 'src/components/Rebalancer/Sections/Stake'
 
 
 export function RebalanceModal(props) {
@@ -43,7 +39,7 @@ export function RebalanceModal(props) {
   const [networksWithYields, setNetworksWithYields] = useState<[string, number, string][]>([])
   useEffect(() => { setNetworksWithYields(getNetworksWithYields()) }, [poolStats])
 
-  const [destinationNetworkId, setDestinationNetworkId] = useState<number>(421613/*chainSlug === "optimism" ? networkSlugToId("arbitrum") : networkSlugToId("optimism")*/)
+  const [destinationNetworkId, setDestinationNetworkId] = useState<number>(chainSlug === "optimism" ? networkSlugToId("arbitrum") : networkSlugToId("optimism"))
   // set default to highest APR network
   useEffect(() => {
     if (typeof networksWithYields !== "undefined" && currentStep === 0) {
@@ -63,7 +59,7 @@ export function RebalanceModal(props) {
   const [bridgeTxHash, setBridgeTxHash] = useState<string>("")
   const [numberOfBridgedTokensReceived, setNumberOfBridgedTokensReceived] = useState<string>("")
 
-  const [currentStep, setCurrentStep] = useState<number>(5)
+  const [currentStep, setCurrentStep] = useState<number>(6)
   const rebalanceSections = [
     <NetworkSelectionSection goToNextSection={() => setCurrentStep(currentStep + 1)} checkConnectedNetworkId={checkConnectedNetworkId} chainSlug={chainSlug} connectedNetworkId={connectedNetworkId} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} networksWithYields={networksWithYields} />,
     <UnstakeWithdrawSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} gasLimit={gasLimit} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} setERC20PositionBalance={setERC20PositionBalance} setShowRebalanceModal={setShowRebalanceModal} getDeadline={getDeadline} approveToken={approveToken} />,
@@ -71,99 +67,10 @@ export function RebalanceModal(props) {
     <BridgeSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} destinationNetworkId={destinationNetworkId} signer={signer} gasLimit={gasLimit} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} erc20PositionBalance={erc20PositionBalance} setBridgeTxHash={setBridgeTxHash} getDeadline={getDeadline} approveToken={approveToken}  />,
     <BridgingStatusSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} provider={provider} connectedNetworkId={connectedNetworkId} destinationNetworkId={destinationNetworkId} changeNetwork={changeNetwork} bridgeTxHash={bridgeTxHash} setNumberOfBridgedTokensReceived={setNumberOfBridgedTokensReceived} getHumanErrorMessage={getHumanErrorMessage} getDeadline={getDeadline} />,
     <WrapSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} numberOfBridgedTokensReceived={numberOfBridgedTokensReceived} signer={signer} gasLimit={gasLimit} getHumanErrorMessage={getHumanErrorMessage} />,
+    <DepositSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} numberOfBridgedTokensReceived={numberOfBridgedTokensReceived} signer={signer} gasLimit={gasLimit} approveToken={approveToken} getDeadline={getDeadline} getTokensAreStaked={getTokensAreStaked} />,
+    <StakeSection close={setShowRebalanceModal(false)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} gasLimit={gasLimit} address={address} getHumanErrorMessage={getHumanErrorMessage} approveToken={approveToken} getTokensAreStaked={getTokensAreStaked} />,
     <p>End</p>
   ]
-
-
-  /* REBALANCE FUNCTIONS */
-
-  // deposit tokens
-  async function addLiquidity() {
-    const canonicalTokenContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-    const saddleSwapContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleSwap
-
-    console.log(numberOfBridgedTokensReceived)
-
-    // approve canonical token spending
-    try {
-      const approveTx = await approveToken(canonicalTokenContractAddress, saddleSwapContractAddress, numberOfBridgedTokensReceived)
-      if (typeof approveTx !== "undefined") {
-        await approveTx.wait()
-          .then(() => {
-            console.log("Approved successfully")
-          })
-          .catch(error => console.error(error))
-      }
-    } catch (error) {
-      console.error(error)
-      return
-    }
-
-    const swapContract = new ethers.Contract(saddleSwapContractAddress, saddleSwapAbi, signer)
-    const minToMint = BigNumber.from(numberOfBridgedTokensReceived)
-      .mul(7)
-      .div(10)
-      .toString()
-    const deadline = getDeadline(4)
-
-    try {
-      const depositTx = await swapContract.addLiquidity([numberOfBridgedTokensReceived, 0],  minToMint, deadline, { gasLimit: gasLimit * 2 })
-      await depositTx.wait()
-        .then((tokensReceived) => {
-          console.log("Successfully deposited tokens")
-        })
-        .catch(error => console.error(error))
-    } catch (error) {
-      console.error(error)
-    }
-  }
-
-  async function stake() {
-    const lpTokenContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleLpToken
-    const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
-
-    const balanceOfAbi = ["function balanceOf(address account) view returns (uint256)"]
-    const lpTokenContract = new ethers.Contract(lpTokenContractAddress, balanceOfAbi, signer)
-
-    let balance: string = "0"
-
-    // get balance of LP token
-    try {
-      balance = await lpTokenContract.balanceOf(address?.address)
-      balance = balance.toString()
-      console.log("LP token balance:", balance)
-    } catch (error) {
-      console.error(error)
-      return
-    }
-
-    // approve LP token spending
-    try {
-      const approveTx = await approveToken(lpTokenContractAddress, stakingContractAddress, balance)
-      if (typeof approveTx !== "undefined") {
-        await approveTx.wait()
-          .then(() => {
-            console.log("Approved successfully")
-          })
-          .catch(error => console.error(error))
-      }
-    } catch (error) {
-      console.error(error)
-      return
-    }
-
-    // stake LP tokens
-    const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
-
-    try {
-      const stakeTx = await stakingContract.stake(balance, { gasLimit: gasLimit })
-      await stakeTx.wait()
-        .then(() => console.log("Staked successfully"))
-        .catch(error => console.error(error))
-    } catch (error) {
-      console.error(error)
-    }
-  }
 
 
   /* DEBUG FUNCTIONS */
@@ -287,14 +194,10 @@ export function RebalanceModal(props) {
   }
 
 
-  if (showRebalanceModal) {
-    return (
-      <Modal onClose={() => setShowRebalanceModal(false)}>
+  return showRebalanceModal
+    ? <Modal onClose={() => setShowRebalanceModal(false)}>
         { rebalanceSections[currentStep] }
         <Footer currentStep={currentStep} totalSteps={rebalanceSections.length} />
       </Modal>
-    )
-  } else {
-    return <></>
-  }
+    : <></>
 }
