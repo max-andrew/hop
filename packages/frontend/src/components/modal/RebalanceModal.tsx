@@ -22,28 +22,16 @@ import { usePoolStats } from 'src/pages/Pools/usePoolStats'
 import { isDarkMode } from 'src/theme/theme'
 import { makeStyles, Theme } from '@material-ui/core/styles'
 import { Grid, Card, Divider, Box, Typography } from '@material-ui/core'
+import Button from 'src/components/buttons/Button'
 import Modal from 'src/components/modal/Modal'
 import { Text } from 'src/components/ui/Text'
 import { RaisedNetworkSelector } from 'src/components/NetworkSelector/RaisedNetworkSelector'
+
 
 const useStyles = makeStyles((theme: Theme) => ({
 
 }))
 
-function RebalanceModalFooter(props) {
-  const currentStep = 0
-  const totalSteps = 5
-
-  return (
-    <>
-      <Divider />
-      <br />
-      <Box textAlign="center">
-        <Typography variant="body2" component="span" color="secondary">{Math.round((currentStep / totalSteps) * 100)}%</Typography>
-      </Box>
-    </>
-  )
-}
 
 type NetworkAPRTupleType = [string, number, string]
 
@@ -52,12 +40,14 @@ interface NetworkSelectionSectionProps {
   chainSlug: string,
   destinationNetworkId: number,
   setDestinationNetwork: (chainSlug: string) => void
+  goToNextSection: () => void
 }
 
 function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
   const networks = props.networksWithYields
   const chainSlug = props.chainSlug
   const destinationNetworkId = props.destinationNetworkId
+  const goToNextSection = props.goToNextSection
 
   // exclude the source network
   const potentialDestinationNetworkObjects = networks.reduce((acc: Network[], network) => {
@@ -74,6 +64,7 @@ function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
       <Typography variant="subtitle2" color="textSecondary">Choose the network to transfer your position to</Typography>
       <br />
       <br />
+      
       <Grid container alignItems="center">
         <Grid item xs>
           <Box display="flex" alignItems="center" justifyContent="center">
@@ -96,6 +87,12 @@ function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
           </Box>
         </Grid>
       </Grid>
+
+      <br />
+      <br />
+      <Box textAlign="center">
+        <Button fullWidth large highlighted onClick={goToNextSection}>Next section</Button>
+      </Box>
     </>
   )
 }
@@ -145,6 +142,18 @@ function GodModeSection(props) {
   )
 }
 
+function RebalanceModalFooter(props) {
+  const currentStep = props.currentStep
+  const totalSteps = props.totalSteps
+
+  return (
+    <Box textAlign="center">
+      <Typography variant="body2" component="span" color="secondary">{Math.round((currentStep / totalSteps) * 100)}%</Typography>
+    </Box>
+  )
+}
+
+
 export function RebalanceModal(props) {
   const styles = useStyles()
 
@@ -181,6 +190,30 @@ export function RebalanceModal(props) {
   const [bridgeTxHash, setBridgeTxHash] = useState<string>("")
   const [bondTxHash, setBondTxHash] = useState<string>("")
   const [numberOfBridgedTokensReceived, setNumberOfBridgedTokensReceived] = useState<string>("")
+
+  const [currentStep, setCurrentStep] = useState<number>(0)
+  const rebalanceSections = [
+    <NetworkSelectionSection networksWithYields={networksWithYields} chainSlug={chainSlug} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} goToNextSection={() => setCurrentStep(currentStep + 1)} />,
+    <GodModeSection
+      chainSlug={chainSlug}
+      setDestinationNetwork={setDestinationNetwork}
+      unstake={unstake}
+      withdrawPosition={withdrawPosition}
+      unwrapIfNativeToken={unwrapIfNativeToken}
+      swapAndSend={swapAndSend}
+      checkBridgeStatusAndSetBondHash={checkBridgeStatusAndSetBondHash}
+      changeNetwork={changeNetwork}
+      setBridgedTokenData={setBridgedTokenData}
+      wrapIfNativeToken={wrapIfNativeToken}
+      addLiquidity={addLiquidity}
+      stake={stake}
+      getNetworksWithYields={getNetworksWithYields}
+      approveToken={approveToken}
+      convertHTokens={convertHTokens}
+      wrapETH={wrapETH}
+      debugTransaction={debugTransaction}
+      />
+  ]
 
   const gasLimit = 700000
 
@@ -718,29 +751,9 @@ export function RebalanceModal(props) {
     return (
       <div className="styles.root">
         <Modal onClose={() => props.setShowRebalanceModal(false)}>
-          <NetworkSelectionSection networksWithYields={networksWithYields} chainSlug={chainSlug} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} />
+          { rebalanceSections[currentStep] }
           <br />
-          <br />
-          <GodModeSection
-            chainSlug={chainSlug}
-            setDestinationNetwork={setDestinationNetwork}
-            unstake={unstake}
-            withdrawPosition={withdrawPosition}
-            unwrapIfNativeToken={unwrapIfNativeToken}
-            swapAndSend={swapAndSend}
-            checkBridgeStatusAndSetBondHash={checkBridgeStatusAndSetBondHash}
-            changeNetwork={changeNetwork}
-            setBridgedTokenData={setBridgedTokenData}
-            wrapIfNativeToken={wrapIfNativeToken}
-            addLiquidity={addLiquidity}
-            stake={stake}
-            getNetworksWithYields={getNetworksWithYields}
-            approveToken={approveToken}
-            convertHTokens={convertHTokens}
-            wrapETH={wrapETH}
-            debugTransaction={debugTransaction}
-            />
-          <RebalanceModalFooter />
+          <RebalanceModalFooter currentStep={currentStep} totalSteps={rebalanceSections.length} />
         </Modal>
       </div>
     )
