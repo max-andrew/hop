@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 
-import { BigNumber, ethers } from 'ethers'
+import { ethers, BigNumber, Contract } from 'ethers'
 import { useWeb3Context } from 'src/contexts/Web3Context'
 import { stakingRewardsAbi } from '@hop-protocol/core/abi'
 import saddleSwapAbi from '@hop-protocol/core/abi/generated/Swap.json'
@@ -21,16 +21,11 @@ import { usePoolStats } from 'src/pages/Pools/usePoolStats'
 
 import { isDarkMode } from 'src/theme/theme'
 import { makeStyles, Theme } from '@material-ui/core/styles'
-import { Grid, Card, Divider, Box, Typography } from '@material-ui/core'
+import { Grid, Card, Divider, Box, Typography, CircularProgress } from '@material-ui/core'
 import Button from 'src/components/buttons/Button'
 import Modal from 'src/components/modal/Modal'
 import { Text } from 'src/components/ui/Text'
 import { RaisedNetworkSelector } from 'src/components/NetworkSelector/RaisedNetworkSelector'
-
-
-const useStyles = makeStyles((theme: Theme) => ({
-
-}))
 
 
 type NetworkAPRTupleType = [string, number, string]
@@ -97,6 +92,58 @@ function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
   )
 }
 
+function UnstakeSection(props) {
+  const reactAppNetwork = props.reactAppNetwork
+  const chainSlug = props.chainSlug
+  const tokenSymbol = props.tokenSymbol
+  const signer = props.signer
+  const tokensAreStaked = props.tokensAreStaked
+  const unstake = props.unstake
+  const withdrawPosition = props.withdrawPosition
+  const erc20PositionBalance = props.erc20PositionBalance
+  const goToNextSection = props.goToNextSection
+
+  const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
+  const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
+
+  const [isTransacting, setIsTransacting] = useState<boolean>(false)
+
+  return (
+    <>
+      <Typography variant="h4" color="textPrimary">Unstake & withdraw</Typography>
+      <Typography variant="subtitle2" color="textSecondary">Withdraw your tokens from the pool</Typography>
+      <br />
+      <br />
+
+      {
+        tokensAreStaked &&
+          <button onClick={() => unstake(tokensAreStaked)}>Unstake</button>
+      }
+
+      {
+        !tokensAreStaked &&
+          <button onClick={() => withdrawPosition()}>Withdraw</button>
+      }
+
+      {
+        isTransacting && 
+          <CircularProgress color="secondary" size={40} thickness={4} />
+      }
+
+      { 
+        (erc20PositionBalance > 0) &&
+          <>
+            <br />
+            <br />
+            <Box textAlign="center">
+              <Button fullWidth large highlighted onClick={goToNextSection}>Next section</Button>
+            </Box>
+          </>
+      }
+    </>
+  )
+}
+
 function GodModeSection(props) {
   const chainSlug = props.chainSlug
   const setDestinationNetwork = props.setDestinationNetwork
@@ -115,6 +162,7 @@ function GodModeSection(props) {
   const convertHTokens = props.convertHTokens
   const wrapETH = props.wrapETH
   const debugTransaction = props.debugTransaction
+  const goToFirstSection = props.goToFirstSection
 
   return (
     <>
@@ -138,6 +186,9 @@ function GodModeSection(props) {
       <button onClick={() => convertHTokens()}>Convert hTokens</button>
       <button onClick={() => wrapETH("1000000000000000")}>Wrap ETH</button>
       <button onClick={() => debugTransaction()}>Debug</button>
+      <p> - </p>
+      <button onClick={goToFirstSection}>Go to first section</button>
+      <br />
     </>
   )
 }
@@ -155,8 +206,6 @@ function RebalanceModalFooter(props) {
 
 
 export function RebalanceModal(props) {
-  const styles = useStyles()
-
   const { address, provider, onboard, connectedNetworkId, checkConnectedNetworkId } = useWeb3Context()
   const signer = provider?.getSigner()
 
@@ -186,6 +235,22 @@ export function RebalanceModal(props) {
     }
   }, [networksWithYields])
 
+  const [tokensAreStaked, setTokensAreStaked] = useState<boolean>(true)
+  useEffect(() => {
+    const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
+    const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
+    
+    async function updateStakeStatus() {
+      const tokensAreStakedResult = await getTokensAreStaked(stakingContract)
+      if (tokensAreStakedResult) {
+        setTokensAreStaked(tokensAreStakedResult)
+      }
+    }
+    return undefined
+
+    updateStakeStatus()
+  }, [])
+
   const [erc20PositionBalance, setERC20PositionBalance] = useState<string>("")
   const [bridgeTxHash, setBridgeTxHash] = useState<string>("")
   const [bondTxHash, setBondTxHash] = useState<string>("")
@@ -194,6 +259,7 @@ export function RebalanceModal(props) {
   const [currentStep, setCurrentStep] = useState<number>(0)
   const rebalanceSections = [
     <NetworkSelectionSection networksWithYields={networksWithYields} chainSlug={chainSlug} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} goToNextSection={() => setCurrentStep(currentStep + 1)} />,
+    <UnstakeSection reactAppNetwork={reactAppNetwork} signer={signer} chainSlug={chainSlug} tokenSymbol={tokenSymbol} tokensAreStaked={tokensAreStaked} unstake={unstake} withdrawPosition={withdrawPosition} goToNextSection={() => setCurrentStep(currentStep + 1)} />,
     <GodModeSection
       chainSlug={chainSlug}
       setDestinationNetwork={setDestinationNetwork}
@@ -212,6 +278,7 @@ export function RebalanceModal(props) {
       convertHTokens={convertHTokens}
       wrapETH={wrapETH}
       debugTransaction={debugTransaction}
+      goToFirstSection={() => setCurrentStep(0)}
       />
   ]
 
@@ -220,33 +287,20 @@ export function RebalanceModal(props) {
 
   /* REBALANCE FUNCTIONS */
 
-  async function unstake() {
+  async function unstake(tokensAreStaked: boolean) {
     const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
     const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
 
-    // check if any tokens are staked
-    try {
-      let stakedBalance: string = await stakingContract.balanceOf(address?.address)
-      stakedBalance = stakedBalance.toString()
-
-      if (stakedBalance === "0") {
-        console.log("No tokens staked, no unstake necessary")
-        return
-      } else {
-        console.log("Staked token balance:", stakedBalance)
+    if (tokensAreStaked) {
+      // unstake LP tokens
+      try {
+        const stakeTx = await stakingContract.exit({ gasLimit: gasLimit })
+        await stakeTx.wait()
+          .then(() => console.log("Unstaked successfully"))
+          .catch(error => console.error(error))
+      } catch (error) {
+        console.error(error)
       }
-    } catch (error) {
-      console.error(error)
-    }
-
-    // unstake LP tokens
-    try {
-      const stakeTx = await stakingContract.exit({ gasLimit: gasLimit })
-      await stakeTx.wait()
-        .then(() => console.log("Unstaked successfully"))
-        .catch(error => console.error(error))
-    } catch (error) {
-      console.error(error)
     }
   }
 
@@ -692,6 +746,25 @@ export function RebalanceModal(props) {
     }
   }
 
+  async function getTokensAreStaked(stakingContract: Contract): Promise<boolean | undefined> {
+    // check if any tokens are staked
+    try {
+      let stakedBalance: string = await stakingContract.balanceOf(address?.address)
+      stakedBalance = stakedBalance.toString()
+
+      if (stakedBalance === "0") {
+        console.log("No tokens staked, no unstake necessary")
+        return false
+      } else {
+        console.log("Staked token balance:", stakedBalance)
+        return true
+      }
+    } catch (error) {
+      console.error(error)
+      return undefined
+    }
+  }
+
   async function approveToken(tokenAddress: string, spenderAddress: string, amount: string) {
     const allowanceAndApproveAbi = ["function allowance(address owner, address spender) public view returns (uint256)", "function approve(address spender, uint256 amount) external returns (bool)"]
     const tokenContract = new ethers.Contract(tokenAddress, allowanceAndApproveAbi, signer)
@@ -749,13 +822,11 @@ export function RebalanceModal(props) {
 
   if (props.showRebalanceModal) {
     return (
-      <div className="styles.root">
-        <Modal onClose={() => props.setShowRebalanceModal(false)}>
-          { rebalanceSections[currentStep] }
-          <br />
-          <RebalanceModalFooter currentStep={currentStep} totalSteps={rebalanceSections.length} />
-        </Modal>
-      </div>
+      <Modal onClose={() => props.setShowRebalanceModal(false)}>
+        { rebalanceSections[currentStep] }
+        <br />
+        <RebalanceModalFooter currentStep={currentStep} totalSteps={rebalanceSections.length} />
+      </Modal>
     )
   } else {
     return <></>
