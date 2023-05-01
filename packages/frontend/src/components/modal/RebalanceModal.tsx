@@ -100,6 +100,51 @@ function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
   )
 }
 
+function GodModeSection(props) {
+  const chainSlug = props.chainSlug
+  const setDestinationNetwork = props.setDestinationNetwork
+  const unstake = props.unstake
+  const withdrawPosition = props.withdrawPosition
+  const unwrapIfNativeToken = props.unwrapIfNativeToken
+  const swapAndSend = props.swapAndSend
+  const checkBridgeStatusAndSetBondHash = props.checkBridgeStatusAndSetBondHash
+  const changeNetwork = props.changeNetwork
+  const setBridgedTokenData = props.setBridgedTokenData
+  const wrapIfNativeToken = props.wrapIfNativeToken
+  const addLiquidity = props.addLiquidity
+  const stake = props.stake
+  const getNetworksWithYields = props.getNetworksWithYields
+  const approveToken = props.approveToken
+  const convertHTokens = props.convertHTokens
+  const wrapETH = props.wrapETH
+  const debugTransaction = props.debugTransaction
+
+  return (
+    <>
+      <br />
+      <button onClick={() => setDestinationNetwork(chainSlug)}>Set destination chain</button>
+      <button onClick={() => unstake()}>Unstake</button>
+      <button onClick={() => withdrawPosition()}>Withdraw</button>
+      <button onClick={() => unwrapIfNativeToken()}>Unwrap if native token</button>
+      <button onClick={() => swapAndSend()}>Bridge</button>
+      <button onClick={() => checkBridgeStatusAndSetBondHash()}>Set bridge data</button>
+      <br />
+      <br />
+      <button onClick={() => changeNetwork()}>Change network</button>
+      <button onClick={() => setBridgedTokenData()}>Set bridged token data</button>
+      <button onClick={() => wrapIfNativeToken()}>Wrap if native token</button>
+      <button onClick={() => addLiquidity()}>Deposit</button>
+      <button onClick={() => stake()}>Stake</button>
+      <p> - </p>
+      <button onClick={() => getNetworksWithYields()}>Get networks</button>
+      <button onClick={() => approveToken("0xDc38c5aF436B9652225f92c370A011C673FA7Ba5", "0xa50395bdEaca7062255109fedE012eFE63d6D402", "39014000550885654")}>Approve</button>
+      <button onClick={() => convertHTokens()}>Convert hTokens</button>
+      <button onClick={() => wrapETH("1000000000000000")}>Wrap ETH</button>
+      <button onClick={() => debugTransaction()}>Debug</button>
+    </>
+  )
+}
+
 export function RebalanceModal(props) {
   const styles = useStyles()
 
@@ -675,27 +720,26 @@ export function RebalanceModal(props) {
         <Modal onClose={() => props.setShowRebalanceModal(false)}>
           <NetworkSelectionSection networksWithYields={networksWithYields} chainSlug={chainSlug} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} />
           <br />
-          <button onClick={() => setDestinationNetwork(chainSlug)}>Set destination chain</button>
-          <button onClick={() => unstake()}>Unstake</button>
-          <button onClick={() => withdrawPosition()}>Withdraw</button>
-          <button onClick={() => unwrapIfNativeToken()}>Unwrap if native token</button>
-          <button onClick={() => swapAndSend()}>Bridge</button>
-          <button onClick={() => checkBridgeStatusAndSetBondHash()}>Set bridge data</button>
           <br />
-          <br />
-          <button onClick={() => changeNetwork()}>Change network</button>
-          <button onClick={() => setBridgedTokenData()}>Set bridged token data</button>
-          <button onClick={() => wrapIfNativeToken()}>Wrap if native token</button>
-          <button onClick={() => addLiquidity()}>Deposit</button>
-          <button onClick={() => stake()}>Stake</button>
-          <p> - </p>
-          <button onClick={() => getNetworksWithYields()}>Get networks</button>
-          <button onClick={() => approveToken("0xDc38c5aF436B9652225f92c370A011C673FA7Ba5", "0xa50395bdEaca7062255109fedE012eFE63d6D402", "39014000550885654")}>Approve</button>
-          <button onClick={() => convertHTokens()}>Convert hTokens</button>
-          <button onClick={() => wrapETH("1000000000000000")}>Wrap ETH</button>
-          <button onClick={() => debugTransaction()}>Debug</button>
-          <br />
-          <br />
+          <GodModeSection
+            chainSlug={chainSlug}
+            setDestinationNetwork={setDestinationNetwork}
+            unstake={unstake}
+            withdrawPosition={withdrawPosition}
+            unwrapIfNativeToken={unwrapIfNativeToken}
+            swapAndSend={swapAndSend}
+            checkBridgeStatusAndSetBondHash={checkBridgeStatusAndSetBondHash}
+            changeNetwork={changeNetwork}
+            setBridgedTokenData={setBridgedTokenData}
+            wrapIfNativeToken={wrapIfNativeToken}
+            addLiquidity={addLiquidity}
+            stake={stake}
+            getNetworksWithYields={getNetworksWithYields}
+            approveToken={approveToken}
+            convertHTokens={convertHTokens}
+            wrapETH={wrapETH}
+            debugTransaction={debugTransaction}
+            />
           <RebalanceModalFooter />
         </Modal>
       </div>
