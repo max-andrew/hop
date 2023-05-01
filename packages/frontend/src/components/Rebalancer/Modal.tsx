@@ -17,7 +17,7 @@ import { BridgeSection } from 'src/components/Rebalancer/Sections/Bridge'
 import { BridgingStatusSection } from 'src/components/Rebalancer/Sections/BridgingStatus'
 import { WrapSection } from 'src/components/Rebalancer/Sections/Wrap'
 import { DepositSection } from 'src/components/Rebalancer/Sections/Deposit'
-import { StakeSection } from 'src/components/Rebalancer/Sections/Stake'
+// import { StakeSection } from 'src/components/Rebalancer/Sections/Stake'
 
 
 export function RebalanceModal(props) {
@@ -68,14 +68,14 @@ export function RebalanceModal(props) {
     <BridgingStatusSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} provider={provider} connectedNetworkId={connectedNetworkId} destinationNetworkId={destinationNetworkId} changeNetwork={changeNetwork} bridgeTxHash={bridgeTxHash} setNumberOfBridgedTokensReceived={setNumberOfBridgedTokensReceived} getHumanErrorMessage={getHumanErrorMessage} getDeadline={getDeadline} />,
     <WrapSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} numberOfBridgedTokensReceived={numberOfBridgedTokensReceived} signer={signer} gasLimit={gasLimit} getHumanErrorMessage={getHumanErrorMessage} />,
     <DepositSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} numberOfBridgedTokensReceived={numberOfBridgedTokensReceived} signer={signer} gasLimit={gasLimit} approveToken={approveToken} getDeadline={getDeadline} getTokensAreStaked={getTokensAreStaked} />,
-    <StakeSection close={setShowRebalanceModal(false)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} gasLimit={gasLimit} address={address} getHumanErrorMessage={getHumanErrorMessage} approveToken={approveToken} getTokensAreStaked={getTokensAreStaked} />,
+    // <StakeSection close={setShowRebalanceModal(false)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} gasLimit={gasLimit} address={address} getHumanErrorMessage={getHumanErrorMessage} approveToken={approveToken} getTokensAreStaked={getTokensAreStaked} />,
     <p>End</p>
   ]
 
 
   /* DEBUG FUNCTIONS */
 
-  async function debugTransaction() {
+  async function debugStateVars() {
     console.log("Logging state values:")
     console.log("destinationNetworkId:", destinationNetworkId)
     console.log("erc20PositionBalance:", erc20PositionBalance)

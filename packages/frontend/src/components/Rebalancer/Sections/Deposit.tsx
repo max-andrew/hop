@@ -19,14 +19,12 @@ export function DepositSection(props) {
   const gasLimit = props.gasLimit
   const approveToken = props.approveToken
   const getDeadline = props.getDeadline
-  const tokensAreStaked = props.tokensAreStaked
+  const getHumanErrorMessage = props.getHumanErrorMessage
 
   // deposit tokens
   async function addLiquidity() {
     const canonicalTokenContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
     const saddleSwapContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleSwap
-
-    console.log(numberOfBridgedTokensReceived)
 
     // approve canonical token spending
     try {
@@ -35,11 +33,18 @@ export function DepositSection(props) {
         await approveTx.wait()
           .then(() => {
             console.log("Approved successfully")
+            setStatusMessage("Approved successfully")
           })
-          .catch(error => console.error(error))
+          .catch(error => {
+            console.error(error)
+            setStatusMessage(getHumanErrorMessage(error))
+            setIsTransacting(false)
+          })
       }
     } catch (error) {
       console.error(error)
+      setStatusMessage(getHumanErrorMessage(error))
+      setIsTransacting(false)
       return
     }
 
@@ -55,10 +60,19 @@ export function DepositSection(props) {
       await depositTx.wait()
         .then((tokensReceived) => {
           console.log("Successfully deposited tokens")
+          setStatusMessage("Successfully deposited tokens")
+          setIsTransacting(false)
+          goToNextSection()
         })
-        .catch(error => console.error(error))
+        .catch(error => {
+          console.error(error)
+          setStatusMessage(getHumanErrorMessage(error))
+          setIsTransacting(false)
+        })
     } catch (error) {
       console.error(error)
+      setStatusMessage(getHumanErrorMessage(error))
+      setIsTransacting(false)
     }
   }
 
@@ -72,13 +86,8 @@ export function DepositSection(props) {
         fullWidth
         onClick={() => {
           setIsTransacting(true)
-          if (tokensAreStaked) {
-            console.log("tokens are staked")
-            // unstake()
-          } else {
-            // withdrawPosition()
-            console.log("tokens are not staked")
-          }
+          addLiquidity()
+          console.log("tokens are not staked")
         }}>
         Deposit
       </Button>
