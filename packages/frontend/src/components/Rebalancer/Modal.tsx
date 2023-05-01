@@ -1,33 +1,39 @@
 import React, { useState, useEffect } from 'react'
 
 import { ethers, BigNumber, Contract } from 'ethers'
+
 import { useWeb3Context } from 'src/contexts/Web3Context'
-import { stakingRewardsAbi } from '@hop-protocol/core/abi'
-import saddleSwapAbi from '@hop-protocol/core/abi/generated/Swap.json'
-import L2_AmmWrapperAbi from '@hop-protocol/core/abi/generated/L2_AmmWrapper.json'
-import { hopStakingRewardsContracts } from 'src/config/addresses'
+import { useApp } from 'src/contexts/AppContext'
+import { useSelectedNetwork } from 'src/hooks'
+import { reactAppNetwork } from 'src/config'
+import { usePoolStats } from 'src/pages/Pools/usePoolStats'
+import { networkIdToSlug, networkSlugToId } from 'src/utils/networks'
 import * as addresses from '@hop-protocol/core/addresses'
 import * as networks from '@hop-protocol/core/networks'
 import * as metadata from '@hop-protocol/core/metadata'
-import { ChainSlug, utils as sdkUtils } from '@hop-protocol/sdk'
-import { useSelectedNetwork } from 'src/hooks'
-import { reactAppNetwork } from 'src/config'
-import { useApp } from 'src/contexts/AppContext'
-import { networkIdToSlug, networkSlugToId } from 'src/utils/networks'
-import Transaction from 'src/models/Transaction'
-import { usePoolStats } from 'src/pages/Pools/usePoolStats'
+
+import { hopStakingRewardsContracts } from 'src/config/addresses'
+import { stakingRewardsAbi } from '@hop-protocol/core/abi'
+import saddleSwapAbi from '@hop-protocol/core/abi/generated/Swap.json'
+import L2_AmmWrapperAbi from '@hop-protocol/core/abi/generated/L2_AmmWrapper.json'
+
+// import Transaction from 'src/models/Transaction'
 
 import { isDarkMode } from 'src/theme/theme'
 import { makeStyles, Theme } from '@material-ui/core/styles'
-import { Grid, Card, Box, Typography, CircularProgress } from '@material-ui/core'
+import { Grid, Box, Typography } from '@material-ui/core'
 import Button from 'src/components/buttons/Button'
 import Modal from 'src/components/modal/Modal'
 import { Footer } from 'src/components/Rebalancer/Footer'
 import { NetworkSelectionSection } from 'src/components/Rebalancer/Sections/NetworkSelection'
 import { UnstakeWithdrawSection } from 'src/components/Rebalancer/Sections/UnstakeWithdraw'
+import { UnwrapSection } from 'src/components/Rebalancer/Sections/Unwrap'
 
 
 export function RebalanceModal(props) {
+  const showRebalanceModal = props.showRebalanceModal
+  const setShowRebalanceModal = props.setShowRebalanceModal
+
   const { address, provider, onboard, connectedNetworkId, checkConnectedNetworkId } = useWeb3Context()
   const signer = provider?.getSigner()
 
@@ -66,43 +72,14 @@ export function RebalanceModal(props) {
 
   const [currentStep, setCurrentStep] = useState<number>(0)
   const rebalanceSections = [
-    <NetworkSelectionSection networksWithYields={networksWithYields} chainSlug={chainSlug} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} goToNextSection={() => setCurrentStep(currentStep + 1)} />,
-    <UnstakeWithdrawSection reactAppNetwork={reactAppNetwork} signer={signer} chainSlug={chainSlug} tokenSymbol={tokenSymbol} getTokensAreStaked={getTokensAreStaked} goToNextSection={() => setCurrentStep(currentStep + 1)} gasLimit={gasLimit} address={address} approveToken={approveToken} getDeadline={getDeadline} getHumanErrorMessage={getHumanErrorMessage} setERC20PositionBalance={setERC20PositionBalance} />,
-    <p>Hello</p>
+    <NetworkSelectionSection goToNextSection={() => setCurrentStep(currentStep + 1)} checkConnectedNetworkId={checkConnectedNetworkId} chainSlug={chainSlug} connectedNetworkId={connectedNetworkId} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} networksWithYields={networksWithYields} />,
+    <UnstakeWithdrawSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} gasLimit={gasLimit} getTokensAreStaked={getTokensAreStaked} address={address} approveToken={approveToken} getDeadline={getDeadline} getHumanErrorMessage={getHumanErrorMessage} setERC20PositionBalance={setERC20PositionBalance} setShowRebalanceModal={setShowRebalanceModal} />,
+    <UnwrapSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} gasLimit={gasLimit} erc20PositionBalance={erc20PositionBalance} getHumanErrorMessage={getHumanErrorMessage} />,
+    <p>End</p>
   ]
 
 
   /* REBALANCE FUNCTIONS */
-
-  // unwrap if ETH or DAI on Gnosis
-  async function unwrapIfNativeToken() {
-    if (tokenSymbol === "ETH") {
-      try {
-        const unwrapTx = await unwrapETH(erc20PositionBalance)
-        await unwrapTx.wait()
-          .then(() => console.log("Successfully unwrapped ETH"))
-          .catch(error => console.error(error))
-      } catch (error) {
-        console.error(error)
-      }
-    } else if (tokenSymbol === "DAI" && chainSlug === "gnosis") {
-      const wDAIContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-      const wDAIAbi = ["function withdraw(uint256 wad) external"]
-
-      const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
-
-      try {
-        const unwrapTx = await wDAIContract.withdraw(erc20PositionBalance, { gasLimit: gasLimit })
-        await unwrapTx.wait()
-          .then(() => console.log("Successfully unwrapped DAI"))
-          .catch(error => console.error(error))
-      } catch (error) {
-        console.error(error)
-      }
-    } else {
-      console.log("Token is ERC20, no unwrap necessary")
-    }
-  }
 
   // bridge canonical tokens
   async function swapAndSend() {
@@ -199,7 +176,7 @@ export function RebalanceModal(props) {
 
     const deadline = getDeadline(3)
     const pollingIntervalInSeconds = 10
-    
+
     while (getDeadline(0) < deadline) {
       const response = await fetch(bridgeStatusURL)
       const data = await response.json()
@@ -219,16 +196,7 @@ export function RebalanceModal(props) {
     console.log("Unable to confirm successful bridge transaction")
   }
 
-  async function changeNetwork() {
-    try {
-      checkConnectedNetworkId(destinationNetworkId)
-
-      const event = { target: { value: networkIdToSlug(destinationNetworkId) } }
-      selectSourceNetwork(event as React.ChangeEvent<{ value: any }>)
-    } catch (error) {
-      console.error(error)
-    }
-  }
+  /* CHANGE NETWORK */
 
   async function setBridgedTokenData() {
     const bondTxReceipt = await provider?.getTransactionReceipt(bondTxHash)
@@ -364,35 +332,6 @@ export function RebalanceModal(props) {
 
   /* DEBUG FUNCTIONS */
 
-  function convertHTokens() {
-    const contractAbi = saddleSwapAbi
-
-    // Create an instance of the contract
-    const optimismContract = "0xa50395bdEaca7062255109fedE012eFE63d6D402"
-
-    const contractAddress = optimismContract
-    const contract = new ethers.Contract(contractAddress, contractAbi, signer)
-
-    const tokenIndexFrom = 1 // hToken
-    const tokenIndexTo = 0 // canonical
-    const dx = 1000000000000000
-    const minDy = 100000000000000
-    const deadline = getDeadline(2)
-    
-    contract.swap(
-      tokenIndexFrom,
-      tokenIndexTo,
-      dx,
-      minDy,
-      deadline,
-      {
-        gasLimit: gasLimit
-      }
-    )
-      .then((balance) => console.log(`success`))
-      .catch(error => console.error(error))
-  }
-
   async function debugTransaction() {
     console.log("Logging state values:")
     console.log("destinationNetworkId:", destinationNetworkId)
@@ -404,6 +343,20 @@ export function RebalanceModal(props) {
 
 
   /* HELPER FUNCTIONS */
+
+  async function changeNetwork(newChainId: number): Promise<number> {
+    try {
+      checkConnectedNetworkId(destinationNetworkId)
+
+      const event = { target: { value: networkIdToSlug(newChainId) } }
+      selectSourceNetwork(event as React.ChangeEvent<{ value: any }>)
+
+      return newChainId
+    } catch (error) {
+      console.error(error)
+      return 0
+    }
+  }
 
   // get an array of potential networks, sorted by descending yield
   function getNetworksWithYields(): [string, number, string][] {
@@ -489,15 +442,6 @@ export function RebalanceModal(props) {
     return await wethContract.deposit({ value: amountToWrap, gasLimit: gasLimit })
   }
 
-  async function unwrapETH(amountToUnwrap: string) {
-    const wETHContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-    const wethAbi = ["function withdraw(uint wad) public"]
-
-    const wethContract = new ethers.Contract(wETHContractAddress, wethAbi, signer)
-
-    return await wethContract.withdraw(amountToUnwrap, { gasLimit: gasLimit })
-  }
-
   // use yields and user input to determine the destination chain
   function setDestinationNetwork(chainSlug: string) {
     const destinationId = networkSlugToId(chainSlug)
@@ -518,9 +462,9 @@ export function RebalanceModal(props) {
   }
 
 
-  if (props.showRebalanceModal) {
+  if (showRebalanceModal) {
     return (
-      <Modal onClose={() => props.setShowRebalanceModal(false)}>
+      <Modal onClose={() => setShowRebalanceModal(false)}>
         { rebalanceSections[currentStep] }
         <Footer currentStep={currentStep} totalSteps={rebalanceSections.length} />
       </Modal>

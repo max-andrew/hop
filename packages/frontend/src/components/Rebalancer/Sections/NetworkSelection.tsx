@@ -1,17 +1,20 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 
 import { findNetworkBySlug } from 'src/utils'
-import { networkIdToSlug } from 'src/utils/networks'
+import { networkIdToSlug, networkSlugToId } from 'src/utils/networks'
 import Network from 'src/models/Network'
 
 import { Grid, Box, Divider, Typography } from '@material-ui/core'
 import Button from 'src/components/buttons/Button'
 import { RaisedNetworkSelector } from 'src/components/NetworkSelector/RaisedNetworkSelector'
+import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
 
 type NetworkAPRTupleType = [string, number, string]
 
 interface NetworkSelectionSectionProps {
+  checkConnectedNetworkId: (networkId: number) => Promise<boolean>
   networksWithYields: NetworkAPRTupleType[],
+  connectedNetworkId: number | undefined,
   chainSlug: string,
   destinationNetworkId: number,
   setDestinationNetwork: (chainSlug: string) => void
@@ -19,10 +22,33 @@ interface NetworkSelectionSectionProps {
 }
 
 export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
+  const checkConnectedNetworkId = props.checkConnectedNetworkId
   const networks = props.networksWithYields
+  const connectedNetworkId = props.connectedNetworkId
   const chainSlug = props.chainSlug
   const destinationNetworkId = props.destinationNetworkId
   const goToNextSection = props.goToNextSection
+
+  const [networksMatch, setNetworksMatch] = useState<boolean>(false)
+
+  // push user to connect to the right chain
+  useEffect(() => {
+    if (connectedNetworkId && connectedNetworkId !== networkSlugToId(chainSlug)) {
+      console.log("Not connected to source network")
+      checkConnectedNetworkId(networkSlugToId(chainSlug))
+    } else {
+      setNetworksMatch(true)
+    }
+  }, [])
+
+  // listen for the right chain connection
+  useEffect(() => {
+    if (connectedNetworkId === networkSlugToId(chainSlug)) {
+      setNetworksMatch(true)
+    } else {
+      setNetworksMatch(false)
+    }
+  }, [connectedNetworkId])
 
   // exclude the source network
   const potentialDestinationNetworkObjects = networks.reduce((acc: Network[], network) => {
@@ -35,11 +61,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
 
   return (
     <>
-      <Typography variant="h4" color="textPrimary">Select destination</Typography>
-      <Typography variant="subtitle2" color="textSecondary">Choose the network to transfer your position to</Typography>
-      <br />
-      <br />
-      
+      <SectionHeader title="Select destination" subtitle="Choose the network to transfer your position to" />
       <Grid container alignItems="center">
         <Grid item xs>
           <Box display="flex" alignItems="center" justifyContent="center">
@@ -54,20 +76,30 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
         <Grid item xs>
           <Box display="flex" flexDirection="column" alignItems="center">
             {networks.map((tuple: NetworkAPRTupleType, index: number) => (
-                <Box key={index} my={1}>
-                  <Typography variant="body1" color="textSecondary" align="right">{tuple[0]}</Typography>
-                  <Typography variant="h3">{tuple[2]}</Typography>
-                </Box>
+              <Box key={index} my={1}>
+                <Typography variant="body1" color="textSecondary" align="right">{tuple[0]}</Typography>
+                <Typography variant="h3">{tuple[2]}</Typography>
+              </Box>
             ))}
           </Box>
         </Grid>
       </Grid>
-
       <br />
       <br />
-      <Box textAlign="center">
-        <Button fullWidth large highlighted onClick={goToNextSection}>Select Network</Button>
-      </Box>
+      <Button 
+        fullWidth 
+        large 
+        highlighted
+        disabled={networksMatch && destinationNetworkId === 0}
+        onClick={() => {
+          if (networksMatch) {
+            goToNextSection()
+          } else {
+            connectedNetworkId && checkConnectedNetworkId(networkSlugToId(chainSlug))
+          }
+        }}>
+        { networksMatch ? "Select Network" : "Switch Networks" }
+      </Button>
     </>
   )
 }

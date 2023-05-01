@@ -10,6 +10,8 @@ import saddleSwapAbi from '@hop-protocol/core/abi/generated/Swap.json'
 
 import { Box, Typography } from '@material-ui/core'
 import Button from 'src/components/buttons/Button'
+import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
+import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/StatusMessage'
 
 export function UnstakeWithdrawSection(props) {
   const reactAppNetwork = props.reactAppNetwork
@@ -25,6 +27,7 @@ export function UnstakeWithdrawSection(props) {
   const getDeadline = props.getDeadline
   const getHumanErrorMessage = props.getHumanErrorMessage
   const setERC20PositionBalance = props.setERC20PositionBalance
+  const setShowRebalanceModal = props.setShowRebalanceModal
 
   const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
   const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
@@ -101,7 +104,7 @@ export function UnstakeWithdrawSection(props) {
         console.log("No tokens to withdraw")
         setStatusMessage("No tokens to withdraw")
         setIsTransacting(false)
-        goToNextSection()
+        setShowRebalanceModal(false)
         return
       } else {
         console.log("LP token balance:", balance)
@@ -187,10 +190,7 @@ export function UnstakeWithdrawSection(props) {
 
   return (
     <>
-      <Typography variant="h4" color="textPrimary">Unstake & withdraw</Typography>
-      <Typography variant="subtitle2" color="textSecondary">Withdraw your tokens from the pool</Typography>
-      <br />
-      <br />
+      <SectionHeader title="Unstake & withdraw" subtitle="Withdraw your tokens from the pool" />
       <Button
         highlighted={!isTransacting}
         loading={isTransacting}
@@ -203,14 +203,10 @@ export function UnstakeWithdrawSection(props) {
           } else {
             withdrawPosition()
           }
-          
         }}>
         { tokensAreStaked ? "Unstake" : "Withdraw" }
       </Button>
-      <Box textAlign="center" mt={1}>
-        <Typography variant="overline">{statusMessage}</Typography>
-      </Box>
-      <Box my={2} />
+      <StatusMessage message={statusMessage} />
     </>
   )
 }
