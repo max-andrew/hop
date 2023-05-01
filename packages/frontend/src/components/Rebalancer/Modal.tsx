@@ -10,204 +10,28 @@ import * as addresses from '@hop-protocol/core/addresses'
 import * as networks from '@hop-protocol/core/networks'
 import * as metadata from '@hop-protocol/core/metadata'
 import { ChainSlug, utils as sdkUtils } from '@hop-protocol/sdk'
-import { findNetworkBySlug } from 'src/utils'
 import { useSelectedNetwork } from 'src/hooks'
 import { reactAppNetwork } from 'src/config'
 import { useApp } from 'src/contexts/AppContext'
 import { networkIdToSlug, networkSlugToId } from 'src/utils/networks'
-import Network from 'src/models/Network'
 import Transaction from 'src/models/Transaction'
 import { usePoolStats } from 'src/pages/Pools/usePoolStats'
 
 import { isDarkMode } from 'src/theme/theme'
 import { makeStyles, Theme } from '@material-ui/core/styles'
-import { Grid, Card, Divider, Box, Typography, CircularProgress } from '@material-ui/core'
+import { Grid, Card, Box, Typography, CircularProgress } from '@material-ui/core'
 import Button from 'src/components/buttons/Button'
 import Modal from 'src/components/modal/Modal'
-import { Text } from 'src/components/ui/Text'
-import { RaisedNetworkSelector } from 'src/components/NetworkSelector/RaisedNetworkSelector'
-
-
-type NetworkAPRTupleType = [string, number, string]
-
-interface NetworkSelectionSectionProps {
-  networksWithYields: NetworkAPRTupleType[],
-  chainSlug: string,
-  destinationNetworkId: number,
-  setDestinationNetwork: (chainSlug: string) => void
-  goToNextSection: () => void
-}
-
-function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
-  const networks = props.networksWithYields
-  const chainSlug = props.chainSlug
-  const destinationNetworkId = props.destinationNetworkId
-  const goToNextSection = props.goToNextSection
-
-  // exclude the source network
-  const potentialDestinationNetworkObjects = networks.reduce((acc: Network[], network) => {
-    const foundNetwork = findNetworkBySlug(network[0])
-    if (foundNetwork && network[0] !== chainSlug) {
-      acc.push(foundNetwork)
-    }
-    return acc
-  }, [])
-
-  return (
-    <>
-      <Typography variant="h4" color="textPrimary">Select destination</Typography>
-      <Typography variant="subtitle2" color="textSecondary">Choose the network to transfer your position to</Typography>
-      <br />
-      <br />
-      
-      <Grid container alignItems="center">
-        <Grid item xs>
-          <Box display="flex" alignItems="center" justifyContent="center">
-            <RaisedNetworkSelector 
-              selectedNetwork={findNetworkBySlug(networkIdToSlug(destinationNetworkId))} 
-              onSelect={e => props.setDestinationNetwork(e.target.value)} 
-              availableNetworks={potentialDestinationNetworkObjects} 
-              />
-          </Box>
-        </Grid>
-        <Divider orientation="vertical" flexItem />
-        <Grid item xs>
-          <Box display="flex" flexDirection="column" alignItems="center">
-            {networks.map((tuple: NetworkAPRTupleType, index: number) => (
-                <Box key={index} my={1}>
-                  <Typography variant="body1" color="textSecondary" align="right">{tuple[0]}</Typography>
-                  <Typography variant="h3">{tuple[2]}</Typography>
-                </Box>
-            ))}
-          </Box>
-        </Grid>
-      </Grid>
-
-      <br />
-      <br />
-      <Box textAlign="center">
-        <Button fullWidth large highlighted onClick={goToNextSection}>Next section</Button>
-      </Box>
-    </>
-  )
-}
-
-function UnstakeSection(props) {
-  const reactAppNetwork = props.reactAppNetwork
-  const chainSlug = props.chainSlug
-  const tokenSymbol = props.tokenSymbol
-  const signer = props.signer
-  const tokensAreStaked = props.tokensAreStaked
-  const unstake = props.unstake
-  const withdrawPosition = props.withdrawPosition
-  const erc20PositionBalance = props.erc20PositionBalance
-  const goToNextSection = props.goToNextSection
-
-  const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
-  const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
-
-  const [isTransacting, setIsTransacting] = useState<boolean>(false)
-
-  return (
-    <>
-      <Typography variant="h4" color="textPrimary">Unstake & withdraw</Typography>
-      <Typography variant="subtitle2" color="textSecondary">Withdraw your tokens from the pool</Typography>
-      <br />
-      <br />
-
-      {
-        tokensAreStaked &&
-          <button onClick={() => unstake(tokensAreStaked)}>Unstake</button>
-      }
-
-      {
-        !tokensAreStaked &&
-          <button onClick={() => withdrawPosition()}>Withdraw</button>
-      }
-
-      {
-        isTransacting && 
-          <CircularProgress color="secondary" size={40} thickness={4} />
-      }
-
-      { 
-        (erc20PositionBalance > 0) &&
-          <>
-            <br />
-            <br />
-            <Box textAlign="center">
-              <Button fullWidth large highlighted onClick={goToNextSection}>Next section</Button>
-            </Box>
-          </>
-      }
-    </>
-  )
-}
-
-function GodModeSection(props) {
-  const chainSlug = props.chainSlug
-  const setDestinationNetwork = props.setDestinationNetwork
-  const unstake = props.unstake
-  const withdrawPosition = props.withdrawPosition
-  const unwrapIfNativeToken = props.unwrapIfNativeToken
-  const swapAndSend = props.swapAndSend
-  const checkBridgeStatusAndSetBondHash = props.checkBridgeStatusAndSetBondHash
-  const changeNetwork = props.changeNetwork
-  const setBridgedTokenData = props.setBridgedTokenData
-  const wrapIfNativeToken = props.wrapIfNativeToken
-  const addLiquidity = props.addLiquidity
-  const stake = props.stake
-  const getNetworksWithYields = props.getNetworksWithYields
-  const approveToken = props.approveToken
-  const convertHTokens = props.convertHTokens
-  const wrapETH = props.wrapETH
-  const debugTransaction = props.debugTransaction
-  const goToFirstSection = props.goToFirstSection
-
-  return (
-    <>
-      <br />
-      <button onClick={() => setDestinationNetwork(chainSlug)}>Set destination chain</button>
-      <button onClick={() => unstake()}>Unstake</button>
-      <button onClick={() => withdrawPosition()}>Withdraw</button>
-      <button onClick={() => unwrapIfNativeToken()}>Unwrap if native token</button>
-      <button onClick={() => swapAndSend()}>Bridge</button>
-      <button onClick={() => checkBridgeStatusAndSetBondHash()}>Set bridge data</button>
-      <br />
-      <br />
-      <button onClick={() => changeNetwork()}>Change network</button>
-      <button onClick={() => setBridgedTokenData()}>Set bridged token data</button>
-      <button onClick={() => wrapIfNativeToken()}>Wrap if native token</button>
-      <button onClick={() => addLiquidity()}>Deposit</button>
-      <button onClick={() => stake()}>Stake</button>
-      <p> - </p>
-      <button onClick={() => getNetworksWithYields()}>Get networks</button>
-      <button onClick={() => approveToken("0xDc38c5aF436B9652225f92c370A011C673FA7Ba5", "0xa50395bdEaca7062255109fedE012eFE63d6D402", "39014000550885654")}>Approve</button>
-      <button onClick={() => convertHTokens()}>Convert hTokens</button>
-      <button onClick={() => wrapETH("1000000000000000")}>Wrap ETH</button>
-      <button onClick={() => debugTransaction()}>Debug</button>
-      <p> - </p>
-      <button onClick={goToFirstSection}>Go to first section</button>
-      <br />
-    </>
-  )
-}
-
-function RebalanceModalFooter(props) {
-  const currentStep = props.currentStep
-  const totalSteps = props.totalSteps
-
-  return (
-    <Box textAlign="center">
-      <Typography variant="body2" component="span" color="secondary">{Math.round((currentStep / totalSteps) * 100)}%</Typography>
-    </Box>
-  )
-}
+import { Footer } from 'src/components/Rebalancer/Footer'
+import { NetworkSelectionSection } from 'src/components/Rebalancer/Sections/NetworkSelection'
+import { UnstakeWithdrawSection } from 'src/components/Rebalancer/Sections/UnstakeWithdraw'
 
 
 export function RebalanceModal(props) {
   const { address, provider, onboard, connectedNetworkId, checkConnectedNetworkId } = useWeb3Context()
   const signer = provider?.getSigner()
+
+  const gasLimit = 700000
 
   const { selectedBridge } = useApp()
   const tokenSymbol = selectedBridge?.getTokenSymbol() ?? ""
@@ -235,22 +59,6 @@ export function RebalanceModal(props) {
     }
   }, [networksWithYields])
 
-  const [tokensAreStaked, setTokensAreStaked] = useState<boolean>(true)
-  useEffect(() => {
-    const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
-    const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
-    
-    async function updateStakeStatus() {
-      const tokensAreStakedResult = await getTokensAreStaked(stakingContract)
-      if (tokensAreStakedResult) {
-        setTokensAreStaked(tokensAreStakedResult)
-      }
-    }
-    return undefined
-
-    updateStakeStatus()
-  }, [])
-
   const [erc20PositionBalance, setERC20PositionBalance] = useState<string>("")
   const [bridgeTxHash, setBridgeTxHash] = useState<string>("")
   const [bondTxHash, setBondTxHash] = useState<string>("")
@@ -259,126 +67,12 @@ export function RebalanceModal(props) {
   const [currentStep, setCurrentStep] = useState<number>(0)
   const rebalanceSections = [
     <NetworkSelectionSection networksWithYields={networksWithYields} chainSlug={chainSlug} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} goToNextSection={() => setCurrentStep(currentStep + 1)} />,
-    <UnstakeSection reactAppNetwork={reactAppNetwork} signer={signer} chainSlug={chainSlug} tokenSymbol={tokenSymbol} tokensAreStaked={tokensAreStaked} unstake={unstake} withdrawPosition={withdrawPosition} goToNextSection={() => setCurrentStep(currentStep + 1)} />,
-    <GodModeSection
-      chainSlug={chainSlug}
-      setDestinationNetwork={setDestinationNetwork}
-      unstake={unstake}
-      withdrawPosition={withdrawPosition}
-      unwrapIfNativeToken={unwrapIfNativeToken}
-      swapAndSend={swapAndSend}
-      checkBridgeStatusAndSetBondHash={checkBridgeStatusAndSetBondHash}
-      changeNetwork={changeNetwork}
-      setBridgedTokenData={setBridgedTokenData}
-      wrapIfNativeToken={wrapIfNativeToken}
-      addLiquidity={addLiquidity}
-      stake={stake}
-      getNetworksWithYields={getNetworksWithYields}
-      approveToken={approveToken}
-      convertHTokens={convertHTokens}
-      wrapETH={wrapETH}
-      debugTransaction={debugTransaction}
-      goToFirstSection={() => setCurrentStep(0)}
-      />
+    <UnstakeWithdrawSection reactAppNetwork={reactAppNetwork} signer={signer} chainSlug={chainSlug} tokenSymbol={tokenSymbol} getTokensAreStaked={getTokensAreStaked} goToNextSection={() => setCurrentStep(currentStep + 1)} gasLimit={gasLimit} address={address} approveToken={approveToken} getDeadline={getDeadline} getHumanErrorMessage={getHumanErrorMessage} setERC20PositionBalance={setERC20PositionBalance} />,
+    <p>Hello</p>
   ]
-
-  const gasLimit = 700000
 
 
   /* REBALANCE FUNCTIONS */
-
-  async function unstake(tokensAreStaked: boolean) {
-    const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
-    const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
-
-    if (tokensAreStaked) {
-      // unstake LP tokens
-      try {
-        const stakeTx = await stakingContract.exit({ gasLimit: gasLimit })
-        await stakeTx.wait()
-          .then(() => console.log("Unstaked successfully"))
-          .catch(error => console.error(error))
-      } catch (error) {
-        console.error(error)
-      }
-    }
-  }
-
-  async function withdrawPosition() {
-    const lpTokenContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleLpToken
-    const saddleSwapContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleSwap
-
-    const balanceOfAbi = ["function balanceOf(address account) view returns (uint256)"]
-    const lpTokenContract = new ethers.Contract(lpTokenContractAddress, balanceOfAbi, signer)
-
-    let balance
-
-    // get balance of LP token
-    try {
-      balance = await lpTokenContract.balanceOf(address?.address)
-      balance = balance.toString()
-
-      if (balance === "0") {
-        console.log("No tokens to withdraw")
-        return
-      } else {
-        console.log("LP token balance:", balance)
-      }
-    } catch (error) {
-      console.error(error)
-      return
-    }
-
-    // approve LP token spending
-    try {
-      const approveTx = await approveToken(lpTokenContractAddress, saddleSwapContractAddress, balance)
-      if (typeof approveTx !== "undefined") {
-        await approveTx.wait()
-          .then(() => {
-            console.log("Approved successfully")
-            removeLiquidityOneToken(balance)
-          })
-          .catch(error => console.error(error))
-      } else {
-        removeLiquidityOneToken(balance)
-      }
-    } catch (error) {
-      console.error(error)
-    }
-
-    async function removeLiquidityOneToken(amount: string) {
-      const swapContract = new ethers.Contract(saddleSwapContractAddress, saddleSwapAbi, signer)
-
-      // adjust for potential difference in decimals between LP tokens and collateral
-      const decimals = metadata[reactAppNetwork].tokens[tokenSymbol].decimals
-      let minAmountBN: BigNumber = BigNumber.from(balance.toString())
-      if (decimals < 18) {
-        minAmountBN = minAmountBN.div(10 ** (18 - decimals))
-      }
-      const minAmount: string = minAmountBN.mul(70).div(100).toString()
-
-      const deadline = getDeadline(2)
-
-      try {
-        const removeLiquidityTx = await swapContract.removeLiquidityOneToken(amount, 0, minAmount, deadline, { gasLimit: gasLimit })
-        await removeLiquidityTx.wait()
-          .then(async (removeLiquidityTxReceipt) => {
-            if (typeof removeLiquidityTxReceipt !== "undefined") {
-              let numberOfTokensWithdrawn: string = removeLiquidityTxReceipt.logs[2].data.toString()
-              numberOfTokensWithdrawn = parseInt(numberOfTokensWithdrawn, 16).toString()
-
-              console.log("Successfully withdrew", numberOfTokensWithdrawn, "tokens")
-              setERC20PositionBalance(numberOfTokensWithdrawn)
-            } else {
-              setERC20PositionBalance("0")
-            }
-          })
-          .catch(error => console.error(error))
-      } catch (error) {
-        console.error(error)
-      }
-    }
-  }
 
   // unwrap if ETH or DAI on Gnosis
   async function unwrapIfNativeToken() {
@@ -819,13 +513,16 @@ export function RebalanceModal(props) {
     return deadline
   }
 
+  function getHumanErrorMessage(error: Error) {
+    return "Error: " + error?.message.split(" (action=")[0]
+  }
+
 
   if (props.showRebalanceModal) {
     return (
       <Modal onClose={() => props.setShowRebalanceModal(false)}>
         { rebalanceSections[currentStep] }
-        <br />
-        <RebalanceModalFooter currentStep={currentStep} totalSteps={rebalanceSections.length} />
+        <Footer currentStep={currentStep} totalSteps={rebalanceSections.length} />
       </Modal>
     )
   } else {

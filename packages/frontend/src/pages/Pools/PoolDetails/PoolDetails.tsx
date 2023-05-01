@@ -23,7 +23,7 @@ import { AccountPosition } from './AccountPosition'
 import { WithdrawForm } from './WithdrawForm'
 import { DepositForm } from './DepositForm'
 import { StakeForm } from './StakeForm'
-import { RebalanceModal } from 'src/components/modal/RebalanceModal'
+import { RebalanceModal } from 'src/components/Rebalancer/Modal'
 
 export function PoolDetails () {
   const styles = useStyles()
