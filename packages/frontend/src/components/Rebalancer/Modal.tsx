@@ -15,7 +15,6 @@ import * as metadata from '@hop-protocol/core/metadata'
 import { hopStakingRewardsContracts } from 'src/config/addresses'
 import { stakingRewardsAbi } from '@hop-protocol/core/abi'
 import saddleSwapAbi from '@hop-protocol/core/abi/generated/Swap.json'
-import L2_AmmWrapperAbi from '@hop-protocol/core/abi/generated/L2_AmmWrapper.json'
 
 // import Transaction from 'src/models/Transaction'
 
@@ -28,6 +27,7 @@ import { Footer } from 'src/components/Rebalancer/Footer'
 import { NetworkSelectionSection } from 'src/components/Rebalancer/Sections/NetworkSelection'
 import { UnstakeWithdrawSection } from 'src/components/Rebalancer/Sections/UnstakeWithdraw'
 import { UnwrapSection } from 'src/components/Rebalancer/Sections/Unwrap'
+import { BridgeSection } from 'src/components/Rebalancer/Sections/Bridge'
 
 
 export function RebalanceModal(props) {
@@ -73,95 +73,14 @@ export function RebalanceModal(props) {
   const [currentStep, setCurrentStep] = useState<number>(0)
   const rebalanceSections = [
     <NetworkSelectionSection goToNextSection={() => setCurrentStep(currentStep + 1)} checkConnectedNetworkId={checkConnectedNetworkId} chainSlug={chainSlug} connectedNetworkId={connectedNetworkId} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} networksWithYields={networksWithYields} />,
-    <UnstakeWithdrawSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} gasLimit={gasLimit} getTokensAreStaked={getTokensAreStaked} address={address} approveToken={approveToken} getDeadline={getDeadline} getHumanErrorMessage={getHumanErrorMessage} setERC20PositionBalance={setERC20PositionBalance} setShowRebalanceModal={setShowRebalanceModal} />,
+    <UnstakeWithdrawSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} gasLimit={gasLimit} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} setERC20PositionBalance={setERC20PositionBalance} setShowRebalanceModal={setShowRebalanceModal} getDeadline={getDeadline} approveToken={approveToken} />,
     <UnwrapSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} gasLimit={gasLimit} erc20PositionBalance={erc20PositionBalance} getHumanErrorMessage={getHumanErrorMessage} />,
+    <BridgeSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} destinationNetworkId={destinationNetworkId} signer={signer} gasLimit={gasLimit} getTokensAreStaked={getTokensAreStaked} address={address} erc20PositionBalance={erc20PositionBalance} setBridgeTxHash={setBridgeTxHash} getDeadline={getDeadline} approveToken={approveToken}  />,
     <p>End</p>
   ]
 
 
   /* REBALANCE FUNCTIONS */
-
-  // bridge canonical tokens
-  async function swapAndSend() {
-    const l2AmmWrapperContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2AmmWrapper
-    const l2AmmWrapperContract = new ethers.Contract(l2AmmWrapperContractAddress, L2_AmmWrapperAbi, signer)
-    const canonicalTokenContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-
-    const amount: string = erc20PositionBalance
-
-    // approve LP token spending
-    try {
-      const approveTx = await approveToken(canonicalTokenContractAddress, l2AmmWrapperContractAddress, amount)
-      if (typeof approveTx !== "undefined") {
-        await approveTx.wait()
-          .then(() => {
-            console.log("Approved successfully")
-          })
-          .catch(error => console.error(error))
-      }
-    } catch (error) {
-      console.error(error)
-      return
-    }
-
-    const recipient = address?.address
-    let bonderFee: string
-    const amountOutMin = amount !== null ? BigNumber.from(amount).mul(70).div(100).toString() : "0"
-    const deadline = getDeadline(15)
-    const destinationAmountOutMin = amountOutMin
-    const destinationDeadline = getDeadline(30)
-
-    const destinationNetworkSlug = networkIdToSlug(destinationNetworkId)
-
-    console.log(`Getting bonder fee for bridging ${amount} ${tokenSymbol} from ${chainSlug} to ${destinationNetworkSlug}`)
-
-    try {
-      const response = await fetch(`https://api.hop.exchange/v1/quote?amount=${amount}&token=${tokenSymbol}&fromChain=${chainSlug}&toChain=${destinationNetworkSlug}&slippage=0.5`)
-      const data = await response.json()
-  
-      bonderFee = data.bonderFee
-
-      if (reactAppNetwork === "goerli") {
-        bonderFee = BigNumber.from(bonderFee).mul(15).div(10).toString() // 1.5x
-      }
-
-      console.log("Bonder fee:", bonderFee)
-    } catch (error) {
-      console.error(error)
-      return
-    }
-
-    let value = "0"
-    if (tokenSymbol === "ETH" || (tokenSymbol === "DAI" && chainSlug === "gnosis")) {
-      value = amount
-    }
-    
-    // bridge tokens
-    try {
-      const bridgeTx = await l2AmmWrapperContract.swapAndSend(
-        destinationNetworkId,
-        recipient,
-        amount,
-        bonderFee,
-        amountOutMin,
-        deadline,
-        destinationAmountOutMin,
-        destinationDeadline,
-        {
-          value: value,
-          gasLimit: gasLimit
-        }
-      )
-
-      setBridgeTxHash(bridgeTx.hash)
-
-      await bridgeTx.wait()
-        .then(() => console.log("Successfully sent tokens"))
-        .catch(error => console.error(error))
-    } catch (error) {
-      console.error(error)
-    }
-  }
 
   async function checkBridgeStatusAndSetBondHash() {
     const bridgeStatusURL: string = `https://api.hop.exchange/v1/transfer-status?transactionHash=${bridgeTxHash}&network=${reactAppNetwork}`
@@ -344,17 +263,13 @@ export function RebalanceModal(props) {
 
   /* HELPER FUNCTIONS */
 
-  async function changeNetwork(newChainId: number): Promise<number> {
+  async function changeNetwork(newChainId: number): Promise<void> {
     try {
       checkConnectedNetworkId(destinationNetworkId)
-
       const event = { target: { value: networkIdToSlug(newChainId) } }
       selectSourceNetwork(event as React.ChangeEvent<{ value: any }>)
-
-      return newChainId
     } catch (error) {
       console.error(error)
-      return 0
     }
   }
 
