@@ -13,7 +13,8 @@ type Props = {
   totalAprFormatted: string
   tvlFormatted: string
   volume24hFormatted: string
-  setShowRebalanceModal: (showRebalanceModal: boolean) => void
+  setShowRebalancerModal: (showRebalancerModal: boolean) => void
+  hideHigherAPRAlert: boolean
 }
 
 export function TopPoolStats (props: Props) {
@@ -25,7 +26,7 @@ export function TopPoolStats (props: Props) {
     totalAprFormatted,
     tvlFormatted,
     volume24hFormatted,
-    setShowRebalanceModal,
+    setShowRebalancerModal,
   } = props
 
   function handleStakeClick (event: ChangeEvent<{}>) {
@@ -35,7 +36,7 @@ export function TopPoolStats (props: Props) {
 
   function handleRebalanceClick (event: ChangeEvent<{}>) {
     event.preventDefault()
-    props.setShowRebalanceModal(true)
+    props.setShowRebalancerModal(true)
   }
 
   return (
@@ -97,23 +98,28 @@ export function TopPoolStats (props: Props) {
             </Box>
           )}
         </Box>
-        <Box ml={2} p={2} display="flex" flexDirection="column" justifyContent="center" className={styles.notStakedMessage + ' ' + styles.topBox} onClick={handleRebalanceClick}>
-          <Box mb={1}>
-            <Typography variant="body2" component="div">
-              <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" className={styles.notStakedMessageColor}>
-                <Box mr={0.5} display="flex" justifyContent="center" alignItems="center">
-                  <ShowChartRoundedIcon className={styles.notStakedMessageColor} style={{ fontSize: '2.5rem' }}/>
-                </Box>
-                <strong>Get higher APR</strong>
+        {
+          !props.hideHigherAPRAlert &&
+          <>
+            <Box ml={2} p={2} display="flex" flexDirection="column" justifyContent="center" className={styles.notStakedMessage + ' ' + styles.topBox} onClick={handleRebalanceClick}>
+              <Box mb={1}>
+                <Typography variant="body2" component="div">
+                  <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" className={styles.notStakedMessageColor}>
+                    <Box mr={0.5} display="flex" justifyContent="center" alignItems="center">
+                      <ShowChartRoundedIcon className={styles.notStakedMessageColor} style={{ fontSize: '2.5rem' }}/>
+                    </Box>
+                    <strong>Get higher APR</strong>
+                  </Box>
+                </Typography>
               </Box>
-            </Typography>
-          </Box>
-          <Box>
-            <Typography variant="body2" component="div">
-              <strong>Move your position to a higher yield network here</strong>
-            </Typography>
-          </Box>
-        </Box>
+              <Box>
+                <Typography variant="body2" component="div">
+                  <strong>Move your position to a higher yield network here</strong>
+                </Typography>
+              </Box>
+            </Box>
+          </>
+        }
       </Box>
   )
 }

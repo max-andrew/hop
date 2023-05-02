@@ -91,6 +91,7 @@ export function UnwrapSection(props) {
         large
         fullWidth
         onClick={() => {
+          console.log("erc", erc20PositionBalance)
           setStatusMessage("Unwrapping tokens")
           setIsTransacting(true)
           unwrapIfNativeToken()

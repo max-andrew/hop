@@ -1,5 +1,6 @@
-import React, { useState, ChangeEvent } from 'react'
+import React, { useState, useEffect, ChangeEvent } from 'react'
 import { usePool } from '../PoolsContext'
+import { usePoolStats } from 'src/pages/Pools/usePoolStats'
 import Box from '@material-ui/core/Box'
 import { useParams } from 'react-router'
 import Alert from 'src/components/alert/Alert'
@@ -23,7 +24,7 @@ import { AccountPosition } from './AccountPosition'
 import { WithdrawForm } from './WithdrawForm'
 import { DepositForm } from './DepositForm'
 import { StakeForm } from './StakeForm'
-import { RebalanceModal } from 'src/components/Rebalancer/Modal'
+import { RebalancerModal } from 'src/components/Rebalancer/Modal'
 
 export function PoolDetails () {
   const styles = useStyles()
@@ -89,7 +90,7 @@ export function PoolDetails () {
   const [selectedTab, setSelectedTab] = useState(tab || 'deposit')
   const [selectedStaking, setSelectedStaking] = useState('0')
   const calculateRemoveLiquidityPriceImpact = calculateRemoveLiquidityPriceImpactFn(userPoolBalance)
-  const [showRebalanceModal, setShowRebalanceModal] = useState(false)
+  const [showRebalancerModal, setShowRebalancerModal] = useState(false)
 
   function goToTab(value: string) {
     history.push({
@@ -137,9 +138,62 @@ export function PoolDetails () {
   const selectedStakingContractAddress = stakingRewards[selectedStaking]?.stakingContractAddress
   const showStakeMessage = !loading && walletConnected && !hasStaked && hasStakeContract
 
+
+  const { poolStats } = usePoolStats()
+  const [networkShowsAPRAlert, setNetworkShowsAPRAlert] = useState(false)
+
+  useEffect(() => {
+    const showAlert = shouldShowAlert()
+    setNetworkShowsAPRAlert(showAlert)
+  }, [chainSlug, poolStats, hasBalance])
+
+  // return false is the network has the highest yield, APR is 0 or undefined, or the user does not have tokens deposited 
+  function shouldShowAlert(): boolean {
+    try {
+      const allNetworks = poolStats
+      const chainNames = allNetworks ? Object.keys(allNetworks) : []
+
+      const chains: [string, number, string][] = []
+      for (const chain of chainNames) {
+        chains.push([chain, allNetworks[chain][tokenSymbol].totalApr, allNetworks[chain][tokenSymbol].totalAprFormatted])
+      }
+
+      // sort chains by APR
+      const chainsSortedByAPR = sortTuplesDescending(chains)
+
+      // return false if APR is undefined or 0
+      if (typeof chainsSortedByAPR[0][1] === "undefined" || chainsSortedByAPR[0][1] === 0) {
+        // console.log("APR is 0 or undefined")
+        return false
+      }
+
+      // return false if the user isn't in the pool
+      if (!hasBalance) {
+        // console.log("User isn't in pool")
+        console.log(token0Amount, token1Amount)
+        return false
+      }
+
+      // return false highest APR network
+      if (chainsSortedByAPR[0][0] === selectedNetwork?.slug) {
+        // console.log("Network has highest APR")
+        return false
+      }
+    } catch (error) {
+      console.error(error)
+      return false
+    }
+
+    return true
+
+    function sortTuplesDescending(tupleArray: [string, number, string][]): [string, number, string][] {
+      return tupleArray.sort((a, b) => b[1] - a[1])
+    }
+  }
+
   return (
     <>
-      <RebalanceModal showRebalanceModal={showRebalanceModal} setShowRebalanceModal={setShowRebalanceModal} />
+      <RebalancerModal showRebalancerModal={showRebalancerModal} setShowRebalancerModal={setShowRebalancerModal} />
       <Box maxWidth={"900px"} m={"0 auto"}>
         <Link to={'/pools'} className={styles.backLink}>
           <Box mb={4} display="flex" alignItems="center">
@@ -172,7 +226,8 @@ export function PoolDetails () {
           totalAprFormatted={totalAprFormatted}
           tvlFormatted={tvlFormatted}
           volume24hFormatted={volumeUsdFormatted}
-          setShowRebalanceModal={setShowRebalanceModal}
+          setShowRebalancerModal={setShowRebalancerModal}
+          hideHigherAPRAlert={!networkShowsAPRAlert}
         />
         <Box mb={4}>
           <Box p={4} className={styles.poolDetails}>
