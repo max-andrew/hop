@@ -1,7 +1,12 @@
 import React from 'react'
 import { Typography } from '@material-ui/core'
 
-export function SectionHeader(props) {
+interface SectionHeaderProps {
+  title: string
+  subtitle: string
+}
+
+export function SectionHeader(props: SectionHeaderProps) {
   return (
     <>
       <Typography variant="h4" color="textPrimary">{ props.title }</Typography>

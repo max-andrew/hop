@@ -1,8 +1,12 @@
 import React from 'react'
 import { Box, Typography } from '@material-ui/core'
 
-export function StatusMessage(props) {
-  const message: string = props.message
+interface StatusMessageProps {
+  message: string
+}
+
+export function StatusMessage(props: StatusMessageProps) {
+  const message = props.message
 
   return (
     <Box textAlign="center" mt={1}>

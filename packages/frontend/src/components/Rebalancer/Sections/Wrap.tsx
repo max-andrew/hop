@@ -1,11 +1,23 @@
 import React, { useState } from 'react'
 import { ethers } from 'ethers'
 import * as addresses from '@hop-protocol/core/addresses'
+import { Addresses } from '@hop-protocol/core/addresses'
 import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
 import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/StatusMessage'
 
-export function WrapSection(props) {
+interface WrapSectionProps {
+  goToNextSection: () => void
+  reactAppNetwork: string
+  chainSlug: string
+  tokenSymbol: string
+  numberOfBridgedTokensReceived: string
+  signer: ethers.Signer
+  gasLimit: number
+  getHumanErrorMessage: (errorMessage: Error) => string
+}
+
+export function WrapSection(props: WrapSectionProps) {
   const goToNextSection = props.goToNextSection
   const reactAppNetwork = props.reactAppNetwork
   const chainSlug = props.chainSlug
@@ -19,7 +31,7 @@ export function WrapSection(props) {
   const [statusMessage, setStatusMessage] = useState<string>("")
 
   async function wrapETH(amountToWrap: string) {
-    const wETHContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
+    const wETHContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
     const wethAbi = ["function deposit() payable"]
 
     const wethContract = new ethers.Contract(wETHContractAddress, wethAbi, signer)
@@ -39,18 +51,20 @@ export function WrapSection(props) {
             setIsTransacting(false)
             goToNextSection()
           })
-          .catch(error => {
+          .catch((error: Error) => {
             console.error(error)
             setStatusMessage(getHumanErrorMessage(error))
             setIsTransacting(false)
           })
       } catch (error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error))
+        if (error instanceof Error) {
+          console.error(error)
+          setStatusMessage(getHumanErrorMessage(error))
+        }
         setIsTransacting(false)
       }
     } else if (tokenSymbol === "DAI" && chainSlug === "gnosis") {
-      const wDAIContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
+      const wDAIContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
       const wDAIAbi = ["function deposit() payable"]
 
       const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
@@ -64,14 +78,16 @@ export function WrapSection(props) {
             setIsTransacting(false)
             goToNextSection()
           })
-          .catch(error => {
+          .catch((error: Error) => {
             console.error(error)
             setStatusMessage(getHumanErrorMessage(error))
             setIsTransacting(false)
           })
       } catch (error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error))
+        if (error instanceof Error) {
+          console.error(error)
+          setStatusMessage(getHumanErrorMessage(error))
+        }
         setIsTransacting(false)
       }
     } else {

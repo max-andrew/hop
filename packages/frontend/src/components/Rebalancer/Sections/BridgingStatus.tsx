@@ -1,10 +1,25 @@
 import React, { useState, useEffect } from 'react'
+import { ethers } from 'ethers'
 import { networkSlugToId } from 'src/utils/networks'
 import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
 import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/StatusMessage'
 
-export function BridgingStatusSection(props) {
+interface BridgingStatusSectionProps {
+  reactAppNetwork: string
+  chainSlug: string
+  provider: ethers.providers.Provider | undefined
+  bridgeTxHash: string
+  setNumberOfBridgedTokensReceived: (numberOfBridgedTokensReceived: string) => void
+  connectedNetworkId: number | undefined
+  destinationNetworkId: number
+  changeNetwork: (newChainId: number) => Promise<boolean>
+  goToNextSection: () => void
+  getHumanErrorMessage: (error: Error) => string
+  getDeadline: (confirmTimeMinutes: number) => number
+}
+
+export function BridgingStatusSection(props: BridgingStatusSectionProps) {
   const reactAppNetwork = props.reactAppNetwork
   const chainSlug = props.chainSlug
   const provider = props.provider
@@ -84,8 +99,10 @@ export function BridgingStatusSection(props) {
       setStatusMessage("Successfully got bridge data")
       goToNextSection()
     } catch (error) {
-      console.error(error)
-      setStatusMessage(getHumanErrorMessage(error))
+      if (error instanceof Error) {
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error))
+      }
       setIsTransacting(false)
     }
   }

@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react'
-
+import React, { useState, useEffect, ChangeEvent } from 'react'
 import { findNetworkBySlug } from 'src/utils'
 import { networkIdToSlug, networkSlugToId } from 'src/utils/networks'
 import Network from 'src/models/Network'
-
+import { SelectProps } from '@material-ui/core/Select'
 import { Grid, Box, Divider, Typography } from '@material-ui/core'
 import Button from 'src/components/buttons/Button'
 import { RaisedNetworkSelector } from 'src/components/NetworkSelector/RaisedNetworkSelector'
@@ -56,9 +55,9 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
         <Grid item xs>
           <Box display="flex" alignItems="center" justifyContent="center">
             <RaisedNetworkSelector 
-              selectedNetwork={findNetworkBySlug(networkIdToSlug(destinationNetworkId))} 
-              onSelect={e => props.setDestinationNetwork(e.target.value)} 
-              availableNetworks={potentialDestinationNetworkObjects} 
+              selectedNetwork={findNetworkBySlug(networkIdToSlug(destinationNetworkId))}
+              onSelect={(e: ChangeEvent<SelectProps>) => props.setDestinationNetwork(e.target.value as string)}
+              availableNetworks={potentialDestinationNetworkObjects}
               />
           </Box>
         </Grid>

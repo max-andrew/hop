@@ -169,8 +169,7 @@ export function PoolDetails () {
 
       // return false if the user isn't in the pool
       if (!hasBalance) {
-        // console.log("User isn't in pool")
-        console.log(token0Amount, token1Amount)
+        // console.log("User isn't in pool"
         return false
       }
 

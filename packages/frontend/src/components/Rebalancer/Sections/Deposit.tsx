@@ -1,16 +1,26 @@
 import React, { useState } from 'react'
-import { ethers, BigNumber } from 'ethers'
+import { ethers, BigNumber, Signer } from 'ethers'
+import { TransactionResponse } from '@ethersproject/abstract-provider'
 import * as addresses from '@hop-protocol/core/addresses'
 import saddleSwapAbi from '@hop-protocol/core/abi/generated/Swap.json'
 import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
 import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/StatusMessage'
 
-export function DepositSection(props) {
-  const [isTransacting, setIsTransacting] = useState<boolean>(false)
-  const [statusMessage, setStatusMessage] = useState<string>("")
+interface DepositSectionProps {
+  reactAppNetwork: string
+  chainSlug: string
+  tokenSymbol: string
+  numberOfBridgedTokensReceived: string
+  signer: Signer
+  gasLimit: number
+  approveToken: (tokenAddress: string, spenderAddress: string, amount: string) => Promise<TransactionResponse | undefined>
+  getDeadline: (confirmTimeMinutes: number) => number
+  getHumanErrorMessage: (error: Error) => string
+  goToNextSection: () => void
+}
 
-  const goToNextSection = props.goToNextSection
+export function DepositSection(props: DepositSectionProps) {
   const reactAppNetwork = props.reactAppNetwork
   const chainSlug = props.chainSlug
   const tokenSymbol = props.tokenSymbol
@@ -20,11 +30,15 @@ export function DepositSection(props) {
   const approveToken = props.approveToken
   const getDeadline = props.getDeadline
   const getHumanErrorMessage = props.getHumanErrorMessage
+  const goToNextSection = props.goToNextSection
+
+  const [isTransacting, setIsTransacting] = useState<boolean>(false)
+  const [statusMessage, setStatusMessage] = useState<string>("")
 
   // deposit tokens
   async function addLiquidity() {
-    const canonicalTokenContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-    const saddleSwapContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleSwap
+    const canonicalTokenContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
+    const saddleSwapContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleSwap
 
     // approve canonical token spending
     try {
@@ -42,8 +56,10 @@ export function DepositSection(props) {
           })
       }
     } catch (error) {
-      console.error(error)
-      setStatusMessage(getHumanErrorMessage(error))
+      if (error instanceof Error) {
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error))
+      }
       setIsTransacting(false)
       return
     }
@@ -58,20 +74,22 @@ export function DepositSection(props) {
     try {
       const depositTx = await swapContract.addLiquidity([numberOfBridgedTokensReceived, 0],  minToMint, deadline, { gasLimit: gasLimit * 2 })
       await depositTx.wait()
-        .then((tokensReceived) => {
+        .then((tokensReceived: string) => {
           console.log("Successfully deposited tokens")
           setStatusMessage("Successfully deposited tokens")
           setIsTransacting(false)
           goToNextSection()
         })
-        .catch(error => {
+        .catch((error: Error) => {
           console.error(error)
           setStatusMessage(getHumanErrorMessage(error))
           setIsTransacting(false)
         })
     } catch (error) {
-      console.error(error)
-      setStatusMessage(getHumanErrorMessage(error))
+      if (error instanceof Error) {
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error))
+      }
       setIsTransacting(false)
     }
   }

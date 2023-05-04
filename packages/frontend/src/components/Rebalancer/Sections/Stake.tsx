@@ -1,13 +1,27 @@
 import React, { useState } from 'react'
-import { ethers } from 'ethers'
+import { ethers, Signer } from 'ethers'
+import { TransactionResponse } from '@ethersproject/abstract-provider'
 import * as addresses from '@hop-protocol/core/addresses'
+import Address from 'src/models/Address'
 import { hopStakingRewardsContracts } from 'src/config/addresses'
 import { stakingRewardsAbi } from '@hop-protocol/core/abi'
 import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
 import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/StatusMessage'
 
-export function StakeSection(props) {
+interface StakeSectionProps {
+  reactAppNetwork: string
+  chainSlug: string
+  tokenSymbol: string
+  signer: Signer
+  gasLimit: number
+  address: Address | undefined
+  approveToken: (tokenAddress: string, spenderAddress: string, amount: string) => Promise<TransactionResponse | undefined>
+  getHumanErrorMessage: (error: Error) => string
+  close: () => void
+}
+
+export function StakeSection(props: StakeSectionProps) {
   const reactAppNetwork = props.reactAppNetwork
   const chainSlug = props.chainSlug
   const tokenSymbol = props.tokenSymbol
@@ -22,8 +36,8 @@ export function StakeSection(props) {
   const [statusMessage, setStatusMessage] = useState<string>("")
 
   async function stake() {
-    const lpTokenContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleLpToken
-    const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
+    const lpTokenContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleLpToken
+    const stakingContractAddress = (hopStakingRewardsContracts as any)?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
 
     const balanceOfAbi = ["function balanceOf(address account) view returns (uint256)"]
     const lpTokenContract = new ethers.Contract(lpTokenContractAddress, balanceOfAbi, signer)
@@ -56,8 +70,10 @@ export function StakeSection(props) {
           })
       }
     } catch (error) {
-      console.error(error)
-      setStatusMessage(getHumanErrorMessage(error))
+      if (error instanceof Error) {
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error))
+      }
       setIsTransacting(false)
       return
     }
@@ -74,14 +90,16 @@ export function StakeSection(props) {
           setIsTransacting(false)
           close()
         })
-        .catch(error => {
+        .catch((error: Error) => {
           console.error(error)
           setStatusMessage(getHumanErrorMessage(error))
           setIsTransacting(false)
         })
     } catch (error) {
-      console.error(error)
-      setStatusMessage(getHumanErrorMessage(error))
+      if (error instanceof Error) {
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error))
+      }
       setIsTransacting(false)
     }
   }

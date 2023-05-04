@@ -1,13 +1,32 @@
 import React, { useState } from 'react'
-import { ethers, BigNumber } from 'ethers'
+import { ethers, BigNumber, Signer, Transaction, Contract } from 'ethers'
+import { TransactionResponse } from '@ethersproject/abstract-provider'
 import { networkIdToSlug } from 'src/utils/networks'
 import * as addresses from '@hop-protocol/core/addresses'
+import Address from 'src/models/Address'
 import L2_AmmWrapperAbi from '@hop-protocol/core/abi/generated/L2_AmmWrapper.json'
 import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
 import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/StatusMessage'
 
-export function BridgeSection(props) {
+interface BridgeSectionProps {
+  reactAppNetwork: string
+  chainSlug: string
+  tokenSymbol: string
+  signer: Signer
+  gasLimit: number
+  getTokensAreStaked: (stakingContract: Contract) => Promise<boolean | undefined>
+  address: Address | undefined
+  erc20PositionBalance: string
+  approveToken: (tokenAddress: string, spenderAddress: string, amount: string) => Promise<TransactionResponse | undefined>
+  getDeadline: (confirmTimeMinutes: number) => number
+  destinationNetworkId: number
+  getHumanErrorMessage: (error: Error) => string
+  setBridgeTxHash: (bridgeTxHash: string) => void
+  goToNextSection: () => void
+}
+
+export function BridgeSection(props: BridgeSectionProps) {
   const reactAppNetwork = props.reactAppNetwork
   const chainSlug = props.chainSlug
   const tokenSymbol = props.tokenSymbol
@@ -28,9 +47,9 @@ export function BridgeSection(props) {
 
   // bridge canonical tokens
   async function swapAndSend() {
-    const l2AmmWrapperContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2AmmWrapper
+    const l2AmmWrapperContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2AmmWrapper
     const l2AmmWrapperContract = new ethers.Contract(l2AmmWrapperContractAddress, L2_AmmWrapperAbi, signer)
-    const canonicalTokenContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
+    const canonicalTokenContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
 
     const amount: string = erc20PositionBalance
 
@@ -53,8 +72,10 @@ export function BridgeSection(props) {
             })
         }
       } catch (error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error))
+        if (error instanceof Error) {
+          console.error(error)
+          setStatusMessage(getHumanErrorMessage(error))
+        }
         setIsTransacting(false)
         return
       }
@@ -85,8 +106,10 @@ export function BridgeSection(props) {
 
       console.log("Bonder fee:", bonderFee)
     } catch (error) {
-      console.error(error)
-      setStatusMessage(getHumanErrorMessage(error))
+      if (error instanceof Error) {
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error))
+      }
       setIsTransacting(false)
       return
     }
@@ -124,14 +147,16 @@ export function BridgeSection(props) {
           setIsTransacting(false)
           goToNextSection()
         })
-        .catch(error => {
+        .catch((error: Error) => {
           console.error(error)
           setStatusMessage(getHumanErrorMessage(error))
           setIsTransacting(false)
         })
     } catch (error) {
-      console.error(error)
-      setStatusMessage(getHumanErrorMessage(error))
+      if (error instanceof Error) {
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error))
+      }
       setIsTransacting(false)
     }
   }

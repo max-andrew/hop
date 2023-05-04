@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { ethers, BigNumber } from 'ethers'
+import { ethers, BigNumber, Signer, Contract } from 'ethers'
+import { TransactionResponse, TransactionReceipt } from '@ethersproject/abstract-provider'
 
 import * as addresses from '@hop-protocol/core/addresses'
 import * as metadata from '@hop-protocol/core/metadata'
+import Address from 'src/models/Address'
 
 import { hopStakingRewardsContracts } from 'src/config/addresses'
 import { stakingRewardsAbi } from '@hop-protocol/core/abi'
@@ -12,32 +14,47 @@ import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
 import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/StatusMessage'
 
-export function UnstakeWithdrawSection(props) {
+interface UnstakeWithdrawSectionProps {
+  reactAppNetwork: string
+  chainSlug: string
+  tokenSymbol: string
+  signer: Signer
+  gasLimit: number
+  getTokensAreStaked: (stakingContract: Contract) => Promise<boolean | undefined>
+  address: Address | undefined
+  approveToken: (tokenAddress: string, spenderAddress: string, amount: string) => Promise<TransactionResponse | undefined>
+  getDeadline: (confirmTimeMinutes: number) => number
+  setERC20PositionBalance: (erc20PositionBalance: string) => void
+  setShowRebalancerModal: (showRebalancerModal: boolean) => void
+  getHumanErrorMessage: (error: Error) => string
+  goToNextSection: () => void
+}
+
+export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
   const reactAppNetwork = props.reactAppNetwork
   const chainSlug = props.chainSlug
   const tokenSymbol = props.tokenSymbol
   const signer = props.signer
   const getTokensAreStaked = props.getTokensAreStaked
-  const erc20PositionBalance = props.erc20PositionBalance
-  const goToNextSection = props.goToNextSection
   const gasLimit = props.gasLimit
   const address = props.address
   const approveToken = props.approveToken
   const getDeadline = props.getDeadline
-  const getHumanErrorMessage = props.getHumanErrorMessage
   const setERC20PositionBalance = props.setERC20PositionBalance
-  const setShowRebalanceModal = props.setShowRebalanceModal
+  const setShowRebalancerModal = props.setShowRebalancerModal
+  const getHumanErrorMessage = props.getHumanErrorMessage
+  const goToNextSection = props.goToNextSection
 
-  const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
+  const stakingContractAddress = (hopStakingRewardsContracts as any)?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
   const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
 
   const [tokensAreStaked, setTokensAreStaked] = useState<boolean>(true)
 
   useEffect(() => {
-    const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
+    const stakingContractAddress = (hopStakingRewardsContracts as any)?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
     const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
     
-    async function updateStakeStatus(setTokensAreStaked) {
+    async function updateStakeStatus(setTokensAreStaked: (tokensAreStaked: boolean) => void) {
       try {
         getTokensAreStaked(stakingContract)
           .then(response => {
@@ -57,7 +74,7 @@ export function UnstakeWithdrawSection(props) {
   const [statusMessage, setStatusMessage] = useState<string>("")
 
   async function unstake() {
-    const stakingContractAddress = hopStakingRewardsContracts?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
+    const stakingContractAddress = (hopStakingRewardsContracts as any)?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
     const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
 
     if (tokensAreStaked) {
@@ -72,27 +89,29 @@ export function UnstakeWithdrawSection(props) {
             setTokensAreStaked(false)
             setIsTransacting(false)
           })
-          .catch(error => {
+          .catch((error: Error) => {
             console.error(error)
             setStatusMessage(getHumanErrorMessage(error))
             setIsTransacting(false)
           })
       } catch (error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error))
+        if (error instanceof Error) {
+          console.error(error)
+          setStatusMessage(getHumanErrorMessage(error))
+        }
         setIsTransacting(false)
       }
     }
   }
 
   async function withdrawPosition() {
-    const lpTokenContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleLpToken
-    const saddleSwapContractAddress = addresses?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleSwap
+    const lpTokenContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleLpToken
+    const saddleSwapContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleSwap
 
     const balanceOfAbi = ["function balanceOf(address account) view returns (uint256)"]
     const lpTokenContract = new ethers.Contract(lpTokenContractAddress, balanceOfAbi, signer)
 
-    let balance
+    let balance: string
 
     // get balance of LP token
     try {
@@ -103,14 +122,16 @@ export function UnstakeWithdrawSection(props) {
         console.log("No tokens to withdraw")
         setStatusMessage("No tokens to withdraw")
         setIsTransacting(false)
-        setShowRebalanceModal(false)
+        setShowRebalancerModal(false)
         return
       } else {
         console.log("LP token balance:", balance)
       }
     } catch (error) {
-      console.error(error)
-      setStatusMessage(getHumanErrorMessage(error))
+      if (error instanceof Error) {
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error))
+      }
       setIsTransacting(false)
       return
     }
@@ -136,8 +157,10 @@ export function UnstakeWithdrawSection(props) {
         removeLiquidityOneToken(balance)
       }
     } catch (error) {
-      console.error(error)
-      setStatusMessage(getHumanErrorMessage(error))
+      if (error instanceof Error) {
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error))
+      }
       setIsTransacting(false)
     }
 
@@ -145,7 +168,7 @@ export function UnstakeWithdrawSection(props) {
       const swapContract = new ethers.Contract(saddleSwapContractAddress, saddleSwapAbi, signer)
 
       // adjust for potential difference in decimals between LP tokens and collateral
-      const decimals = metadata[reactAppNetwork].tokens[tokenSymbol].decimals
+      const decimals = (metadata as any)[reactAppNetwork].tokens[tokenSymbol].decimals
       let minAmountBN: BigNumber = BigNumber.from(balance.toString())
       if (decimals < 18) {
         minAmountBN = minAmountBN.div(10 ** (18 - decimals))
@@ -158,7 +181,7 @@ export function UnstakeWithdrawSection(props) {
         setStatusMessage("Withdrawing tokens")
         const removeLiquidityTx = await swapContract.removeLiquidityOneToken(amount, 0, minAmount, deadline, { gasLimit: gasLimit })
         await removeLiquidityTx.wait()
-          .then(async (removeLiquidityTxReceipt) => {
+          .then(async (removeLiquidityTxReceipt: TransactionReceipt) => {
             if (typeof removeLiquidityTxReceipt !== "undefined") {
               let numberOfTokensWithdrawn: string = removeLiquidityTxReceipt.logs[2].data.toString()
               numberOfTokensWithdrawn = parseInt(numberOfTokensWithdrawn, 16).toString()
@@ -174,14 +197,16 @@ export function UnstakeWithdrawSection(props) {
               setERC20PositionBalance("0")
             }
           })
-          .catch(error => {
+          .catch((error: Error) => {
             console.error(error)
             setStatusMessage(getHumanErrorMessage(error))
             setIsTransacting(false)
           })
       } catch (error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error))
+        if (error instanceof Error) {
+          console.error(error)
+          setStatusMessage(getHumanErrorMessage(error))
+        }
         setIsTransacting(false)
       }
     }
