@@ -65,12 +65,14 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
         <Divider orientation="vertical" flexItem />
         <Grid item xs>
           <Box display="flex" flexDirection="column" alignItems="center">
-            {networks.map((tuple: NetworkAPRTupleType, index: number) => (
-              <Box key={index} my={1}>
-                <Typography variant="body1" color="textSecondary" align="right">{tuple[0]}</Typography>
-                <Typography variant="h3">{tuple[2]}</Typography>
-              </Box>
-            ))}
+            <Box>
+              {networks.map((tuple: NetworkAPRTupleType, index: number) => (
+                <Box key={index} my={2}>
+                  <Typography variant="body1" color="textSecondary" align="right">{tuple[0]}</Typography>
+                  <Typography variant="h3" align="right">{tuple[2]}</Typography>
+                </Box>
+              ))}
+            </Box>
           </Box>
         </Grid>
       </Grid>
