@@ -147,7 +147,7 @@ export function PoolDetails () {
     setNetworkShowsAPRAlert(showAlert)
   }, [chainSlug, poolStats, hasBalance])
 
-  // return false is the network has the highest yield, APR is 0 or undefined, or the user does not have tokens deposited 
+  // return false if the network has the highest yield, APR is 0 or undefined, or the user does not have tokens deposited 
   function shouldShowAlert(): boolean {
     try {
       const allNetworks = poolStats

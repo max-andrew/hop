@@ -37,16 +37,21 @@ export const useStyles = makeStyles(theme => ({
     background: theme.palette.type === 'dark' ? '#0000003d' : '#fff',
     borderRadius: '2rem',
     width: '100%',
-    [theme.breakpoints.down('xs')]: {
+    [theme.breakpoints.down('sm')]: {
       marginBottom: '1rem',
       marginLeft: 0,
-      width: '90%'
+      width: '92%'
     },
   },
   topBoxes: {
-    [theme.breakpoints.down('xs')]: {
-      flexDirection: 'column'
+    [theme.breakpoints.down('sm')]: {
+      flexDirection: 'column',
+      alignItems: 'center'
     },
+  },
+  topBoxButton: {
+    cursor: "pointer",
+    boxShadow: theme.palette.type === 'dark' ? '-6px 6px 12px 0px #121212, -5px -5px 14px 0px #00000026 inset, -6px 6px 12px 0px #26262666 inset' : '5px -5px 12px 0px #FFFFFF, -6px 6px 12px 0px #D8D5DC, -5px -5px 14px 0px #FFFFFF26 inset, -6px 6px 12px 0px #E9E5E866 inset',
   },
   poolStats: {
     boxShadow: theme.boxShadow.inner,

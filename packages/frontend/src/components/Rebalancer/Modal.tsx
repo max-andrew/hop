@@ -19,7 +19,12 @@ import { WrapSection } from 'src/components/Rebalancer/Sections/Wrap'
 import { DepositSection } from 'src/components/Rebalancer/Sections/Deposit'
 import { StakeSection } from 'src/components/Rebalancer/Sections/Stake'
 
-export function RebalancerModal(props) {
+interface RebalancerModalProps {
+  showRebalancerModal: boolean
+  setShowRebalancerModal: (showRebalancerModal: boolean) => void
+}
+
+export function RebalancerModal(props: RebalancerModalProps) {
   const showRebalancerModal = props.showRebalancerModal
   const setShowRebalancerModal = props.setShowRebalancerModal
 
