@@ -23,7 +23,7 @@ export function BridgingStatusSection(props: BridgingStatusSectionProps) {
   const reactAppNetwork = props.reactAppNetwork
   const chainSlug = props.chainSlug
   const provider = props.provider
-  const bridgeTxHash = props.bridgeTxHash
+  const bridgeTxHash = "0x7011b93dd589515d5fbf61a476ce202835eca269cd42e60c7f2c512959e4751c" // props.bridgeTxHash
   const setNumberOfBridgedTokensReceived = props.setNumberOfBridgedTokensReceived
   const connectedNetworkId = props.connectedNetworkId
   const destinationNetworkId = props.destinationNetworkId
@@ -36,6 +36,7 @@ export function BridgingStatusSection(props: BridgingStatusSectionProps) {
   const [statusMessage, setStatusMessage] = useState<string>("")
 
   const [networksMatch, setNetworksMatch] = useState<boolean>(false)
+  console.log("hi")
 
   // listen for the right chain connection
   useEffect(() => {
@@ -70,7 +71,7 @@ export function BridgingStatusSection(props: BridgingStatusSectionProps) {
       return
     }
 
-    const deadline = getDeadline(5)
+    const deadline = getDeadline(8)
     const pollingIntervalInSeconds = 10
 
     while (getDeadline(0) < deadline) {
@@ -82,7 +83,7 @@ export function BridgingStatusSection(props: BridgingStatusSectionProps) {
         console.log("Successfully bridged tokens with hash:", bondHash)
         return bondHash
       } else {
-        console.log("Could not yet confirm successful bridging, rechecking")
+        console.log("Could not yet confirm successful bridging, rechecking with transaction hash:", bridgeTxHash)
       }
 
       await new Promise(resolve => setTimeout(resolve, 1000 * pollingIntervalInSeconds))
@@ -99,10 +100,8 @@ export function BridgingStatusSection(props: BridgingStatusSectionProps) {
       setStatusMessage("Successfully got bridge data")
       goToNextSection()
     } catch (error) {
-      if (error instanceof Error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error))
-      }
+      console.error(error)
+      setStatusMessage("Unable to confirm successful bridge transaction")
       setIsTransacting(false)
     }
   }

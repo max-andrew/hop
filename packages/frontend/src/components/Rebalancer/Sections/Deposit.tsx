@@ -56,10 +56,8 @@ export function DepositSection(props: DepositSectionProps) {
           })
       }
     } catch (error) {
-      if (error instanceof Error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error))
-      }
+      console.error(error)
+      setStatusMessage(getHumanErrorMessage(error as Error))
       setIsTransacting(false)
       return
     }
@@ -72,7 +70,7 @@ export function DepositSection(props: DepositSectionProps) {
     const deadline = getDeadline(4)
 
     try {
-      const depositTx = await swapContract.addLiquidity([numberOfBridgedTokensReceived, 0],  minToMint, deadline, { gasLimit: gasLimit * 2 })
+      const depositTx = await swapContract.addLiquidity([numberOfBridgedTokensReceived, 0],  minToMint, deadline, { gasLimit: gasLimit })
       await depositTx.wait()
         .then((tokensReceived: string) => {
           console.log("Successfully deposited tokens")
@@ -86,10 +84,8 @@ export function DepositSection(props: DepositSectionProps) {
           setIsTransacting(false)
         })
     } catch (error) {
-      if (error instanceof Error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error))
-      }
+      console.error(error)
+      setStatusMessage(getHumanErrorMessage(error as Error))      
       setIsTransacting(false)
     }
   }

@@ -63,7 +63,7 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
             }
           })
       } catch (error) {
-        console.log(error)
+        console.error(error)
       }
     }
 
@@ -95,10 +95,8 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
             setIsTransacting(false)
           })
       } catch (error) {
-        if (error instanceof Error) {
-          console.error(error)
-          setStatusMessage(getHumanErrorMessage(error))
-        }
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error as Error))
         setIsTransacting(false)
       }
     }
@@ -128,10 +126,8 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
         console.log("LP token balance:", balance)
       }
     } catch (error) {
-      if (error instanceof Error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error))
-      }
+      console.error(error)
+      setStatusMessage(getHumanErrorMessage(error as Error))
       setIsTransacting(false)
       return
     }
@@ -157,10 +153,8 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
         removeLiquidityOneToken(balance)
       }
     } catch (error) {
-      if (error instanceof Error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error))
-      }
+      console.error(error)
+      setStatusMessage(getHumanErrorMessage(error as Error))
       setIsTransacting(false)
     }
 
@@ -179,7 +173,7 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
 
       try {
         setStatusMessage("Withdrawing tokens")
-        const removeLiquidityTx = await swapContract.removeLiquidityOneToken(amount, 0, minAmount, deadline, { gasLimit: gasLimit })
+        const removeLiquidityTx = await swapContract.removeLiquidityOneToken(amount, 0, minAmount, deadline, { gasLimit: gasLimit * 5 })
         await removeLiquidityTx.wait()
           .then(async (removeLiquidityTxReceipt: TransactionReceipt) => {
             if (typeof removeLiquidityTxReceipt !== "undefined") {
@@ -203,10 +197,8 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
             setIsTransacting(false)
           })
       } catch (error) {
-        if (error instanceof Error) {
-          console.error(error)
-          setStatusMessage(getHumanErrorMessage(error))
-        }
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error as Error))
         setIsTransacting(false)
       }
     }

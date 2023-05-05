@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { ethers, Signer } from 'ethers'
+import * as hopMetadata from '@hop-protocol/core/metadata'
 import * as addresses from '@hop-protocol/core/addresses'
 import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
@@ -29,6 +30,10 @@ export function UnwrapSection(props: UnwrapSectionProps) {
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")
 
+  function isNativeToken(chainSlug: string, tokenSymbol: string): boolean {
+    return tokenSymbol === (hopMetadata as any)?.[reactAppNetwork]?.chains?.[chainSlug]?.nativeTokenSymbol
+  }
+
   async function unwrapETH(amountToUnwrap: string) {
     const wETHContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
     const wethAbi = ["function withdraw(uint wad) public"]
@@ -55,14 +60,12 @@ export function UnwrapSection(props: UnwrapSectionProps) {
             setStatusMessage(getHumanErrorMessage(error))
             setIsTransacting(false)
           })
-      } catch (error) {
-        if (error instanceof Error) {
-          console.error(error)
-          setStatusMessage(getHumanErrorMessage(error))
-        }
+      } catch (error) {        
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error as Error))
         setIsTransacting(false)
       }
-    } else if (tokenSymbol === "DAI" && chainSlug === "gnosis") {
+    } else if (isNativeToken(chainSlug, tokenSymbol)) {
       const wDAIContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
       const wDAIAbi = ["function withdraw(uint256 wad) external"]
 
@@ -83,10 +86,8 @@ export function UnwrapSection(props: UnwrapSectionProps) {
             setIsTransacting(false)
           })
       } catch (error) {
-        if (error instanceof Error) {
-          console.error(error)
-          setStatusMessage(getHumanErrorMessage(error))
-        }
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error as Error))
         setIsTransacting(false)
       }
     } else {
@@ -106,7 +107,6 @@ export function UnwrapSection(props: UnwrapSectionProps) {
         large
         fullWidth
         onClick={() => {
-          console.log("erc", erc20PositionBalance)
           setStatusMessage("Unwrapping tokens")
           setIsTransacting(true)
           unwrapIfNativeToken()

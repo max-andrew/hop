@@ -138,19 +138,21 @@ export function PoolDetails () {
   const selectedStakingContractAddress = stakingRewards[selectedStaking]?.stakingContractAddress
   const showStakeMessage = !loading && walletConnected && !hasStaked && hasStakeContract
 
-
   const { poolStats } = usePoolStats()
   const [networkShowsAPRAlert, setNetworkShowsAPRAlert] = useState(false)
 
   useEffect(() => {
     const showAlert = shouldShowAlert()
     setNetworkShowsAPRAlert(showAlert)
-  }, [chainSlug, poolStats, hasBalance])
+  }, [poolStats, hasBalance])
 
-  // return false if the network has the highest yield, APR is 0 or undefined, or the user does not have tokens deposited 
+  // return false if the network has the highest yield, APR is undefined, or the user does not have tokens deposited 
   function shouldShowAlert(): boolean {
     try {
       const allNetworks = poolStats
+
+      if (!allNetworks) return false
+
       const chainNames = allNetworks ? Object.keys(allNetworks) : []
 
       const chains: [string, number, string][] = []
@@ -161,15 +163,15 @@ export function PoolDetails () {
       // sort chains by APR
       const chainsSortedByAPR = sortTuplesDescending(chains)
 
-      // return false if APR is undefined or 0
-      if (typeof chainsSortedByAPR[0][1] === "undefined" || chainsSortedByAPR[0][1] === 0) {
+      // return false if APR is undefined
+      if (typeof chainsSortedByAPR[0][1] === "undefined") {
         // console.log("APR is 0 or undefined")
         return false
       }
 
       // return false if the user isn't in the pool
       if (!hasBalance) {
-        // console.log("User isn't in pool"
+        // console.log("User isn't in pool")
         return false
       }
 
@@ -192,7 +194,7 @@ export function PoolDetails () {
 
   return (
     <>
-      <RebalancerModal showRebalancerModal={showRebalancerModal} setShowRebalancerModal={setShowRebalancerModal} />
+      <RebalancerModal showRebalancerModal={showRebalancerModal} setShowRebalancerModal={setShowRebalancerModal} poolStats={poolStats} />
       <Box maxWidth={"900px"} m={"0 auto"}>
         <Link to={'/pools'} className={styles.backLink}>
           <Box mb={4} display="flex" alignItems="center">

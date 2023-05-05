@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { ethers, BigNumber, Signer, Transaction, Contract } from 'ethers'
 import { TransactionResponse } from '@ethersproject/abstract-provider'
 import { networkIdToSlug } from 'src/utils/networks'
+import * as hopMetadata from '@hop-protocol/core/metadata'
 import * as addresses from '@hop-protocol/core/addresses'
 import Address from 'src/models/Address'
 import L2_AmmWrapperAbi from '@hop-protocol/core/abi/generated/L2_AmmWrapper.json'
@@ -45,6 +46,10 @@ export function BridgeSection(props: BridgeSectionProps) {
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")
 
+  function isNativeToken(chainSlug: string, tokenSymbol: string): boolean {
+    return tokenSymbol === (hopMetadata as any)?.[reactAppNetwork]?.chains?.[chainSlug]?.nativeTokenSymbol
+  }
+
   // bridge canonical tokens
   async function swapAndSend() {
     const l2AmmWrapperContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2AmmWrapper
@@ -54,7 +59,7 @@ export function BridgeSection(props: BridgeSectionProps) {
     const amount: string = erc20PositionBalance
 
     // if not native token, approve token spending
-    if (!(tokenSymbol === "ETH" || (tokenSymbol === "DAI" && chainSlug === "gnosis"))) {
+    if (!isNativeToken(chainSlug, tokenSymbol)) {
       try {
         setStatusMessage("Approving spending")
 
@@ -72,10 +77,8 @@ export function BridgeSection(props: BridgeSectionProps) {
             })
         }
       } catch (error) {
-        if (error instanceof Error) {
-          console.error(error)
-          setStatusMessage(getHumanErrorMessage(error))
-        }
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error as Error))
         setIsTransacting(false)
         return
       }
@@ -106,16 +109,14 @@ export function BridgeSection(props: BridgeSectionProps) {
 
       console.log("Bonder fee:", bonderFee)
     } catch (error) {
-      if (error instanceof Error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error))
-      }
+      console.error(error)
+      setStatusMessage(getHumanErrorMessage(error as Error))
       setIsTransacting(false)
       return
     }
 
     let value = "0"
-    if (tokenSymbol === "ETH" || (tokenSymbol === "DAI" && chainSlug === "gnosis")) {
+    if (isNativeToken(chainSlug, tokenSymbol)) {
       value = amount
     }
     
@@ -153,10 +154,8 @@ export function BridgeSection(props: BridgeSectionProps) {
           setIsTransacting(false)
         })
     } catch (error) {
-      if (error instanceof Error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error))
-      }
+      console.error(error)
+      setStatusMessage(getHumanErrorMessage(error as Error))
       setIsTransacting(false)
     }
   }

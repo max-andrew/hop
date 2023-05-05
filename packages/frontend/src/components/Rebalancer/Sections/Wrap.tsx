@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { ethers } from 'ethers'
+import * as hopMetadata from '@hop-protocol/core/metadata'
 import * as addresses from '@hop-protocol/core/addresses'
 import { Addresses } from '@hop-protocol/core/addresses'
 import Button from 'src/components/buttons/Button'
@@ -30,6 +31,10 @@ export function WrapSection(props: WrapSectionProps) {
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")
 
+  function isNativeToken(chainSlug: string, tokenSymbol: string): boolean {
+    return tokenSymbol === (hopMetadata as any)?.[reactAppNetwork]?.chains?.[chainSlug]?.nativeTokenSymbol
+  }
+
   async function wrapETH(amountToWrap: string) {
     const wETHContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
     const wethAbi = ["function deposit() payable"]
@@ -57,13 +62,11 @@ export function WrapSection(props: WrapSectionProps) {
             setIsTransacting(false)
           })
       } catch (error) {
-        if (error instanceof Error) {
-          console.error(error)
-          setStatusMessage(getHumanErrorMessage(error))
-        }
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error as Error))
         setIsTransacting(false)
       }
-    } else if (tokenSymbol === "DAI" && chainSlug === "gnosis") {
+    } else if (isNativeToken(chainSlug, tokenSymbol)) {
       const wDAIContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
       const wDAIAbi = ["function deposit() payable"]
 
@@ -84,10 +87,8 @@ export function WrapSection(props: WrapSectionProps) {
             setIsTransacting(false)
           })
       } catch (error) {
-        if (error instanceof Error) {
-          console.error(error)
-          setStatusMessage(getHumanErrorMessage(error))
-        }
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error as Error))
         setIsTransacting(false)
       }
     } else {

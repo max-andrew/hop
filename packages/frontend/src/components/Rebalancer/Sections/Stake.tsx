@@ -70,10 +70,8 @@ export function StakeSection(props: StakeSectionProps) {
           })
       }
     } catch (error) {
-      if (error instanceof Error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error))
-      }
+      console.error(error)
+      setStatusMessage(getHumanErrorMessage(error as Error))
       setIsTransacting(false)
       return
     }
@@ -96,10 +94,8 @@ export function StakeSection(props: StakeSectionProps) {
           setIsTransacting(false)
         })
     } catch (error) {
-      if (error instanceof Error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error))
-      }
+      console.error(error)
+      setStatusMessage(getHumanErrorMessage(error as Error))
       setIsTransacting(false)
     }
   }

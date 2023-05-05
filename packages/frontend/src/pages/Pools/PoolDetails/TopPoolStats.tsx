@@ -91,7 +91,7 @@ export function TopPoolStats (props: Props) {
               </Typography>
             </Box>
             <Box>
-              <Typography variant="body2" component="div">
+              <Typography variant="body2" style={{ fontSize: '1.144rem' }} component="div">
                 <strong>Stake below to earn rewards</strong>
               </Typography>
             </Box>
