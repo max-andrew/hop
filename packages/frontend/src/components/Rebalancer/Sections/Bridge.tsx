@@ -104,7 +104,7 @@ export function BridgeSection(props: BridgeSectionProps) {
       bonderFee = data.bonderFee
 
       if (reactAppNetwork === "goerli") {
-        bonderFee = BigNumber.from(bonderFee).mul(15).div(10).toString() // 1.5x
+        bonderFee = BigNumber.from(bonderFee).mul(25).div(10).toString() // 2.5x
       }
 
       console.log("Bonder fee:", bonderFee)

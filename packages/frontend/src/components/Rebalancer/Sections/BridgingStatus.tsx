@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { ethers } from 'ethers'
-import { networkSlugToId } from 'src/utils/networks'
+import { networkIdToSlug, networkSlugToId } from 'src/utils/networks'
+import { transferTimes } from 'src/config'
 import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
 import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/StatusMessage'
@@ -12,6 +13,7 @@ interface BridgingStatusSectionProps {
   bridgeTxHash: string
   setNumberOfBridgedTokensReceived: (numberOfBridgedTokensReceived: string) => void
   connectedNetworkId: number | undefined
+  bridgedFromNetworkId: number
   destinationNetworkId: number
   changeNetwork: (newChainId: number) => Promise<boolean>
   goToNextSection: () => void
@@ -23,9 +25,10 @@ export function BridgingStatusSection(props: BridgingStatusSectionProps) {
   const reactAppNetwork = props.reactAppNetwork
   const chainSlug = props.chainSlug
   const provider = props.provider
-  const bridgeTxHash = "0x7011b93dd589515d5fbf61a476ce202835eca269cd42e60c7f2c512959e4751c" // props.bridgeTxHash
+  const bridgeTxHash = "0x99b166a641f90604a896e88df71d0bcbaed4bca747b6393835aa32e13497efcd" // props.bridgeTxHash
   const setNumberOfBridgedTokensReceived = props.setNumberOfBridgedTokensReceived
   const connectedNetworkId = props.connectedNetworkId
+  const bridgedFromNetworkId = props.bridgedFromNetworkId
   const destinationNetworkId = props.destinationNetworkId
   const changeNetwork = props.changeNetwork
   const goToNextSection = props.goToNextSection
@@ -36,7 +39,6 @@ export function BridgingStatusSection(props: BridgingStatusSectionProps) {
   const [statusMessage, setStatusMessage] = useState<string>("")
 
   const [networksMatch, setNetworksMatch] = useState<boolean>(false)
-  console.log("hi")
 
   // listen for the right chain connection
   useEffect(() => {
@@ -71,7 +73,13 @@ export function BridgingStatusSection(props: BridgingStatusSectionProps) {
       return
     }
 
-    const deadline = getDeadline(8)
+    let waitInMinutes: number = 10
+    if (connectedNetworkId && bridgedFromNetworkId !== 0) {
+      waitInMinutes = (transferTimes as any)?.[networkIdToSlug(bridgedFromNetworkId)][chainSlug]
+    }
+
+    console.log(`Setting deadline for ${waitInMinutes} minutes`)
+    const deadline = getDeadline(waitInMinutes)
     const pollingIntervalInSeconds = 10
 
     while (getDeadline(0) < deadline) {

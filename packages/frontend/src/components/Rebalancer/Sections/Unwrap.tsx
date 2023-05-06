@@ -43,52 +43,54 @@ export function UnwrapSection(props: UnwrapSectionProps) {
     return await wethContract.withdraw(amountToUnwrap, { gasLimit: gasLimit })
   }
 
-  // unwrap if ETH or DAI on Gnosis
+  // unwrap if native
   async function unwrapIfNativeToken() {
-    if (tokenSymbol === "ETH") {
-      try {
-        const unwrapTx = await unwrapETH(erc20PositionBalance)
-        await unwrapTx.wait()
-          .then(() => {
-            console.log("Successfully unwrapped ETH")
-            setStatusMessage("Successfully unwrapped ETH")
-            setIsTransacting(false)
-            goToNextSection()
-          })
-          .catch((error: Error) => {
-            console.error(error)
-            setStatusMessage(getHumanErrorMessage(error))
-            setIsTransacting(false)
-          })
-      } catch (error) {        
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error as Error))
-        setIsTransacting(false)
-      }
-    } else if (isNativeToken(chainSlug, tokenSymbol)) {
-      const wDAIContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-      const wDAIAbi = ["function withdraw(uint256 wad) external"]
+    if (isNativeToken(chainSlug, tokenSymbol)) {
+      if (tokenSymbol === "ETH") {
+        try {
+          const unwrapTx = await unwrapETH(erc20PositionBalance)
+          await unwrapTx.wait()
+            .then(() => {
+              console.log("Successfully unwrapped ETH")
+              setStatusMessage("Successfully unwrapped ETH")
+              setIsTransacting(false)
+              goToNextSection()
+            })
+            .catch((error: Error) => {
+              console.error(error)
+              setStatusMessage(getHumanErrorMessage(error))
+              setIsTransacting(false)
+            })
+        } catch (error) {        
+          console.error(error)
+          setStatusMessage(getHumanErrorMessage(error as Error))
+          setIsTransacting(false)
+        }
+      } else if (tokenSymbol === "DAI") {
+        const wDAIContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
+        const wDAIAbi = ["function withdraw(uint256 wad) external"]
 
-      const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
+        const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
 
-      try {
-        const unwrapTx = await wDAIContract.withdraw(erc20PositionBalance, { gasLimit: gasLimit })
-        await unwrapTx.wait()
-          .then(() => {
-            console.log("Successfully unwrapped DAI")
-            setStatusMessage("Successfully unwrapped ETH")
-            setIsTransacting(false)
-            goToNextSection()
-          })
-          .catch((error: Error) => {
-            console.error(error)
-            setStatusMessage(getHumanErrorMessage(error))
-            setIsTransacting(false)
-          })
-      } catch (error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error as Error))
-        setIsTransacting(false)
+        try {
+          const unwrapTx = await wDAIContract.withdraw(erc20PositionBalance, { gasLimit: gasLimit })
+          await unwrapTx.wait()
+            .then(() => {
+              console.log("Successfully unwrapped DAI")
+              setStatusMessage("Successfully unwrapped ETH")
+              setIsTransacting(false)
+              goToNextSection()
+            })
+            .catch((error: Error) => {
+              console.error(error)
+              setStatusMessage(getHumanErrorMessage(error))
+              setIsTransacting(false)
+            })
+        } catch (error) {
+          console.error(error)
+          setStatusMessage(getHumanErrorMessage(error as Error))
+          setIsTransacting(false)
+        }
       }
     } else {
       console.log("Token is ERC20, no unwrap necessary")

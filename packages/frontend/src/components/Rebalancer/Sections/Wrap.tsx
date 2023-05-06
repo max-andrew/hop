@@ -44,52 +44,54 @@ export function WrapSection(props: WrapSectionProps) {
     return await wethContract.deposit({ value: amountToWrap, gasLimit: gasLimit })
   }
 
-  // wrap if ETH or DAI on Gnosis
+  // wrap if native
   async function wrapIfNativeToken() {
-    if (tokenSymbol === "ETH") {
-      try {
-        const wrapTx = await wrapETH(numberOfBridgedTokensReceived)
-        await wrapTx.wait()
-          .then(() => {
-            console.log("Successfully wrapped ETH")
-            setStatusMessage("Successfully wrapped ETH")
-            setIsTransacting(false)
-            goToNextSection()
-          })
-          .catch((error: Error) => {
-            console.error(error)
-            setStatusMessage(getHumanErrorMessage(error))
-            setIsTransacting(false)
-          })
-      } catch (error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error as Error))
-        setIsTransacting(false)
-      }
-    } else if (isNativeToken(chainSlug, tokenSymbol)) {
-      const wDAIContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-      const wDAIAbi = ["function deposit() payable"]
+    if (isNativeToken(chainSlug, tokenSymbol)) {
+      if (tokenSymbol === "ETH") {
+        try {
+          const wrapTx = await wrapETH(numberOfBridgedTokensReceived)
+          await wrapTx.wait()
+            .then(() => {
+              console.log("Successfully wrapped ETH")
+              setStatusMessage("Successfully wrapped ETH")
+              setIsTransacting(false)
+              goToNextSection()
+            })
+            .catch((error: Error) => {
+              console.error(error)
+              setStatusMessage(getHumanErrorMessage(error))
+              setIsTransacting(false)
+            })
+        } catch (error) {
+          console.error(error)
+          setStatusMessage(getHumanErrorMessage(error as Error))
+          setIsTransacting(false)
+        }
+      } else if (isNativeToken(chainSlug, tokenSymbol)) {
+        const wDAIContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
+        const wDAIAbi = ["function deposit() payable"]
 
-      const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
+        const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
 
-      try {
-        const wrapTx = await wDAIContract.deposit({ value: numberOfBridgedTokensReceived, gasLimit: gasLimit })
-        await wrapTx.wait()
-          .then(() => {
-            console.log("Successfully wrapped DAI")
-            setStatusMessage("Successfully wrapped DAI")
-            setIsTransacting(false)
-            goToNextSection()
-          })
-          .catch((error: Error) => {
-            console.error(error)
-            setStatusMessage(getHumanErrorMessage(error))
-            setIsTransacting(false)
-          })
-      } catch (error) {
-        console.error(error)
-        setStatusMessage(getHumanErrorMessage(error as Error))
-        setIsTransacting(false)
+        try {
+          const wrapTx = await wDAIContract.deposit({ value: numberOfBridgedTokensReceived, gasLimit: gasLimit })
+          await wrapTx.wait()
+            .then(() => {
+              console.log("Successfully wrapped DAI")
+              setStatusMessage("Successfully wrapped DAI")
+              setIsTransacting(false)
+              goToNextSection()
+            })
+            .catch((error: Error) => {
+              console.error(error)
+              setStatusMessage(getHumanErrorMessage(error))
+              setIsTransacting(false)
+            })
+        } catch (error) {
+          console.error(error)
+          setStatusMessage(getHumanErrorMessage(error as Error))
+          setIsTransacting(false)
+        }
       }
     } else {
       console.log("Token is ERC20, no wrap necessary")

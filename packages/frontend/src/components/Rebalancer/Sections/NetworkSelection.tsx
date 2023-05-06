@@ -15,6 +15,7 @@ interface NetworkSelectionSectionProps {
   networksWithYields: NetworkAPRTupleType[],
   connectedNetworkId: number | undefined,
   chainSlug: string,
+  setBridgedFromNetworkId: (bridgedFromNetworkId: number) => void
   destinationNetworkId: number,
   setDestinationNetwork: (chainSlug: string) => void
   goToNextSection: () => void
@@ -25,6 +26,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
   const networks = props.networksWithYields
   const connectedNetworkId = props.connectedNetworkId
   const chainSlug = props.chainSlug
+  const setBridgedFromNetworkId = props.setBridgedFromNetworkId
   const destinationNetworkId = props.destinationNetworkId
   const goToNextSection = props.goToNextSection
 
@@ -34,6 +36,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
   useEffect(() => {
     if (connectedNetworkId === networkSlugToId(chainSlug)) {
       setNetworksMatch(true)
+      setBridgedFromNetworkId(connectedNetworkId)
     } else {
       setNetworksMatch(false)
     }
