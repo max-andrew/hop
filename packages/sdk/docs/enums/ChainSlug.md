@@ -5,12 +5,14 @@
 ### Enumeration Members
 
 - [Arbitrum](ChainSlug.md#arbitrum)
-- [ConsenSysZk](ChainSlug.md#consensyszk)
+- [Base](ChainSlug.md#base)
 - [Ethereum](ChainSlug.md#ethereum)
 - [Gnosis](ChainSlug.md#gnosis)
+- [Linea](ChainSlug.md#linea)
 - [Nova](ChainSlug.md#nova)
 - [Optimism](ChainSlug.md#optimism)
 - [Polygon](ChainSlug.md#polygon)
+- [ScrollZk](ChainSlug.md#scrollzk)
 - [ZkSync](ChainSlug.md#zksync)
 
 ## Enumeration Members
@@ -21,9 +23,9 @@
 
 ___
 
-### <a id="consensyszk" name="consensyszk"></a> ConsenSysZk
+### <a id="base" name="base"></a> Base
 
-• **ConsenSysZk** = ``"consensyszk"``
+• **Base** = ``"base"``
 
 ___
 
@@ -36,6 +38,12 @@ ___
 ### <a id="gnosis" name="gnosis"></a> Gnosis
 
 • **Gnosis** = ``"gnosis"``
+
+___
+
+### <a id="linea" name="linea"></a> Linea
+
+• **Linea** = ``"linea"``
 
 ___
 
@@ -54,6 +62,12 @@ ___
 ### <a id="polygon" name="polygon"></a> Polygon
 
 • **Polygon** = ``"polygon"``
+
+___
+
+### <a id="scrollzk" name="scrollzk"></a> ScrollZk
+
+• **ScrollZk** = ``"scrollzk"``
 
 ___
 

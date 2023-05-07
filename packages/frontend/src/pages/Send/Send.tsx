@@ -46,6 +46,7 @@ import useAvailableLiquidity from './useAvailableLiquidity'
 import useIsSmartContractWallet from 'src/hooks/useIsSmartContractWallet'
 import { ExternalLink } from 'src/components/Link'
 import { FeeRefund } from './FeeRefund'
+import IconButton from '@material-ui/core/IconButton'
 
 const Send: FC = () => {
   const styles = useSendStyles()
@@ -184,6 +185,8 @@ const Send: FC = () => {
     totalBonderFee,
     totalBonderFeeDisplay,
     totalBonderFeeUsdDisplay,
+    totalFeeDisplay, // bonderFee + messageRelayFee
+    totalFeeUsdDisplay, // bonderFee + messageRelayFee
     estimatedReceivedDisplay,
     estimatedReceivedUsdDisplay,
     tokenUsdPrice,
@@ -320,20 +323,20 @@ const Send: FC = () => {
       const isHighPriceImpact = priceImpact && priceImpact !== 100 && Math.abs(priceImpact) >= 1
       const showPriceImpactWarning = isHighPriceImpact && !isFavorableSlippage
       const bonderFeeMajority = sourceToken?.decimals && estimatedReceived && totalFee && ((Number(formatUnits(totalFee, sourceToken?.decimals)) / Number(fromTokenAmount)) > 0.5)
-      const isToConsenSysZk = toNetwork?.slug === 'consensyszk' && fromTokenAmount
+      const insufficientRelayFeeFunds = sourceToken?.symbol === 'ETH' && fromTokenAmountBN?.gt(0) && relayFeeEth?.gt(0) && fromBalance && fromTokenAmountBN.gt(fromBalance.sub(relayFeeEth))
 
       if (sufficientBalanceWarning) {
         message = sufficientBalanceWarning
       } else if (estimatedReceived && adjustedBonderFee?.gt(estimatedReceived)) {
         message = 'Bonder fee greater than estimated received'
+      } else if (insufficientRelayFeeFunds) {
+        message = `Insufficient balance to cover the cost of tx. Please add ${sourceToken.nativeTokenSymbol} to pay for tx fees.`
       } else if (estimatedReceived?.lte(0)) {
         message = 'Estimated received too low. Send a higher amount to cover the fees.'
       } else if (showPriceImpactWarning) {
         message = `Warning: Price impact is high. Slippage is ${commafy(priceImpact)}%`
       } else if (bonderFeeMajority) {
         message = 'Warning: More than 50% of amount will go towards bonder fee'
-      } else if (isToConsenSysZk) {
-        message = 'Non-whitelisted users risk losing access to any tokens bridged to zkEVM. To get whitelisted, reach out to the ConsenSys zkEVM team.'
       }
 
       setWarning(message)
@@ -349,9 +352,12 @@ const Send: FC = () => {
     estimatedReceived,
     priceImpact,
     fromTokenAmount,
+    fromTokenAmountBN,
     toTokenAmount,
     totalFee,
-    toNetwork
+    toNetwork,
+    relayFeeEth,
+    fromBalance
   ])
 
   useEffect(() => {
@@ -383,28 +389,15 @@ const Send: FC = () => {
 
   const needsApproval = useAsyncMemo(async () => {
     try {
-      if (!(fromNetwork && sourceToken && fromTokenAmount)) {
+      if (!(fromNetwork && toNetwork && sourceToken && fromTokenAmount)) {
         return false
       }
 
       const parsedAmount = amountToBN(fromTokenAmount, sourceToken.decimals)
       const bridge = sdk.bridge(sourceToken.symbol)
 
-      let spender: string = await bridge.getSendApprovalAddress(fromNetwork.slug)
-
-      if (reactAppNetwork === 'goerli') {
-        if (toNetwork?.slug === 'consensyszk') {
-          if (sourceToken?.symbol === 'ETH') {
-            const l1BridgeWrapper = '0xE85b69930fC6D59da385C7cc9e8Ff03f8F0469BA'
-            spender = l1BridgeWrapper
-          }
-          if (sourceToken?.symbol === 'USDC') {
-            const l1BridgeWrapper = '0x71139b5d8844642aa1797435bd5df1fbc9de0813'
-            spender = l1BridgeWrapper
-          }
-        }
-      }
-
+      const isHTokenTransfer = false
+      const spender: string = bridge.getSendApprovalAddress(fromNetwork.slug, isHTokenTransfer, toNetwork.slug)
       return checkApproval(parsedAmount, sourceToken, spender)
     } catch (err: any) {
       logger.error(err)
@@ -415,6 +408,10 @@ const Send: FC = () => {
   const approveFromToken = async () => {
     if (!fromNetwork) {
       throw new Error('No fromNetwork selected')
+    }
+
+    if (!toNetwork) {
+      throw new Error('No toNetwork selected')
     }
 
     if (!sourceToken) {
@@ -434,21 +431,8 @@ const Send: FC = () => {
     const parsedAmount = amountToBN(fromTokenAmount, sourceToken.decimals)
     const bridge = sdk.bridge(sourceToken.symbol)
 
-    let spender: string = await bridge.getSendApprovalAddress(fromNetwork.slug)
-
-    if (reactAppNetwork === 'goerli') {
-      if (toNetwork?.slug === 'consensyszk') {
-        if (sourceToken?.symbol === 'ETH') {
-          const l1BridgeWrapper = '0xE85b69930fC6D59da385C7cc9e8Ff03f8F0469BA'
-          spender = l1BridgeWrapper
-        }
-        if (sourceToken?.symbol === 'USDC') {
-          const l1BridgeWrapper = '0x71139b5d8844642aa1797435bd5df1fbc9de0813'
-          spender = l1BridgeWrapper
-        }
-      }
-    }
-
+    const isHTokenTransfer = false
+    const spender: string = bridge.getSendApprovalAddress(fromNetwork.slug, isHTokenTransfer, toNetwork.slug)
     const tx = await approve(parsedAmount, sourceToken, spender)
 
     await tx?.wait()
@@ -725,11 +709,14 @@ const Send: FC = () => {
         toNetwork={toNetwork}
         fromNetwork={fromNetwork}
         setWarning={setWarning}
+        maxButtonFixedAmountToSubtract={sourceToken?.symbol === 'ETH' ? relayFeeEth : 0}
       />
 
-      <Flex justifyCenter alignCenter my={1} onClick={handleSwitchDirection} pointer hover>
-        <ArrowDownIcon color="primary" className={styles.downArrow} />
-      </Flex>
+      <Box display="flex" justifyContent="center" alignItems="center">
+        <IconButton onClick={handleSwitchDirection} title="Click to switch direction">
+          <ArrowDownIcon color="primary" className={styles.downArrow} />
+        </IconButton>
+      </Box>
 
       <SendAmountSelectorCard
         value={toTokenAmount}
@@ -780,8 +767,8 @@ const Send: FC = () => {
               <FeeDetails bonderFee={bonderFeeDisplay} bonderFeeUsd={bonderFeeUsdDisplay} destinationTxFee={destinationTxFeeDisplay} destinationTxFeeUsd={destinationTxFeeUsdDisplay} relayFee={relayFeeEthDisplay} relayFeeUsd={relayFeeUsdDisplay} />
             }
             value={<>
-              <InfoTooltip title={totalBonderFeeUsdDisplay}>
-                <Box>{totalBonderFeeDisplay}</Box>
+              <InfoTooltip title={totalFeeUsdDisplay}>
+                <Box>{totalFeeDisplay}</Box>
               </InfoTooltip>
             </>}
             large

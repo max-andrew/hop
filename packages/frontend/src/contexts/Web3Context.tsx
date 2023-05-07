@@ -54,7 +54,7 @@ const networkNames: any = {
   100: 'Gnosis',
   80001: 'Polygon (Mumbai)',
   137: 'Polygon',
-  59140: 'ConsenSys zkEVM (Goerli)',
+  59140: 'Linea (Goerli)',
   84531: 'Base (Goerli)',
   534354: 'Scroll zkEVM (Goerli)'
 }
@@ -66,7 +66,7 @@ const getWalletConnectRpcUrls = (): Record<string, string> => {
       421613: getRpcUrl(ChainSlug.Arbitrum),
       420: getRpcUrl(ChainSlug.Optimism),
       80001: getRpcUrl(ChainSlug.Polygon),
-      59140: getRpcUrl(ChainSlug.ConsenSysZk),
+      59140: getRpcUrl(ChainSlug.Linea),
       534354: getRpcUrl(ChainSlug.ScrollZk),
       84531: getRpcUrl(ChainSlug.Base)
     }
@@ -338,6 +338,12 @@ const Web3ContextProvider: FC = ({ children }) => {
         return true
       }
 
+      let rpcUrl = getRpcUrlOrThrow(networkIdToSlug(networkId.toString()))
+      const lineaChainId = 59140
+      if (Number(networkId) === lineaChainId) {
+        rpcUrl = 'https://rpc.goerli.linea.build'
+      }
+
       const state = onboard.getState()
       if (state.address) {
         onboard.config({ networkId })
@@ -353,10 +359,6 @@ const Web3ContextProvider: FC = ({ children }) => {
             },
           ])
         } else {
-          const shouldSkipAddingChain = Number(networkId) === 59140 // consensyszk, NOTE: this is temporary until rpc enables writing
-          if (shouldSkipAddingChain) {
-            throw new NetworkSwitchError(`Please add or switch to ConsenSys zkEVM (Goerli) [networkId ${59140}] in your wallet first and then try again. More info: https://docs.zkevm.consensys.net/use-zkevm/set-up-your-wallet`)
-          }
           let nativeCurrency: any = {
             name: 'ETH',
             symbol: 'ETH',
@@ -380,7 +382,7 @@ const Web3ContextProvider: FC = ({ children }) => {
           const rpcObj = {
             chainId: `0x${Number(networkId).toString(16)}`,
             chainName: networkNames[networkId],
-            rpcUrls: [getRpcUrlOrThrow(networkIdToSlug(networkId.toString()))],
+            rpcUrls: [rpcUrl],
             blockExplorerUrls: [getBaseExplorerUrl(networkIdToSlug(networkId.toString()))],
             nativeCurrency,
           }

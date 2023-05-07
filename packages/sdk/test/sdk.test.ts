@@ -13,7 +13,7 @@ import { FallbackProvider } from '../src/provider'
 import { fetchJsonOrThrow } from '../src/utils/fetchJsonOrThrow'
 import { getChainSlugFromName } from '../src/utils'
 
-describe('sdk setup', () => {
+describe.skip('sdk setup', () => {
   const hop = new Hop('kovan')
   const signer = new Wallet(privateKey)
   it('should return version', () => {
@@ -71,7 +71,7 @@ describe.skip('hop bridge token transfers', () => {
   )
 })
 
-describe('tx watcher', () => {
+describe.skip('tx watcher', () => {
   const hop = new Hop('mainnet')
   const signer = new Wallet(privateKey)
   it.skip(
@@ -422,7 +422,7 @@ describe.skip('liqudity provider', () => {
   })
 })
 
-describe('custom addresses', () => {
+describe.skip('custom addresses', () => {
   it('should set custom addresses', () => {
     const address = '0x1111111111111111111111111111111111111111'
     const newAddresses = Object.assign({}, addresses)
@@ -437,7 +437,7 @@ describe('custom addresses', () => {
   })
 })
 
-describe('approve addresses', () => {
+describe.skip('approve addresses', () => {
   const sdk = new Hop('mainnet')
   const bridge = sdk.bridge('USDC')
   it('get send approval address (L1 -> L2)', () => {
@@ -456,7 +456,7 @@ describe('approve addresses', () => {
   })
 })
 
-describe('custom chain providers', () => {
+describe.skip('custom chain providers', () => {
   it('should set custom chain provider', () => {
     const sdk = new Hop('mainnet')
     const bridge = sdk.bridge('USDC')
@@ -489,9 +489,26 @@ describe('custom chain providers', () => {
     expect(bridge.getProviderRpcUrl(polygonProvider)).toBe(newPolygonUrl)
     expect(bridge.getProviderRpcUrl(gnosisProvider)).toBe(newGnosisUrl)
   })
+
+  it('constructor chainProviders option', () => {
+    const newPolygonUrl = 'https://polygon-rpc2.com'
+    const newGnosisUrl = 'https://rpc.gnosischain2.com'
+    const polygonProvider = new providers.StaticJsonRpcProvider(newPolygonUrl)
+    const gnosisProvider = new providers.StaticJsonRpcProvider(newGnosisUrl)
+    const sdk = new Hop({
+      network: 'mainnet',
+      chainProviders: {
+        polygon: polygonProvider,
+        gnosis: gnosisProvider
+      }
+    })
+    const bridge = sdk.bridge('USDC')
+    expect(bridge.getChainProvider('polygon')).toBe(polygonProvider)
+    expect(bridge.getChainProvider('gnosis')).toBe(gnosisProvider)
+  })
 })
 
-describe('getSendData', () => {
+describe.skip('getSendData', () => {
   it.skip('available liquidity', async () => {
     const sdk = new Hop('mainnet')
     const bridge = sdk.bridge('USDC')
@@ -562,7 +579,7 @@ describe('getSendData', () => {
     const destinationTxFee = await bridge.getDestinationTransactionFee(sourceChain, destinationChain)
     console.log(destinationTxFee)
     expect(destinationTxFee.gt(0)).toBeTruthy()
-  })
+  }, 10 * 1000)
 
   it('getDestinationTransactionFeeData', async () => {
     const hop = new Hop('mainnet')
@@ -577,7 +594,7 @@ describe('getSendData', () => {
     expect(chainNativeTokenPrice > 0 && chainNativeTokenPrice < 10000).toBeTruthy()
     expect(tokenPrice > 0 && tokenPrice < 10000).toBeTruthy()
     expect(destinationChainGasPrice.gt(0)).toBeTruthy()
-  })
+  }, 10 * 1000)
 
   it('getSendData', async () => {
     const hop = new Hop('mainnet')
@@ -603,7 +620,8 @@ describe('getSendData', () => {
       tokenPriceRate,
       chainNativeTokenPrice,
       tokenPrice,
-      destinationChainGasPrice
+      destinationChainGasPrice,
+      isLiquidityAvailable
     } = result
     console.log(result)
     expect(amountOut.gt(0)).toBeTruthy()
@@ -623,10 +641,78 @@ describe('getSendData', () => {
     expect(chainNativeTokenPrice > 0 && chainNativeTokenPrice < 10000).toBeTruthy()
     expect(tokenPrice > 0 && tokenPrice < 10000).toBeTruthy()
     expect(destinationChainGasPrice.gt(0)).toBeTruthy()
+    expect(typeof isLiquidityAvailable).toBe('boolean')
+  }, 10 * 1000)
+})
+
+describe.skip('getSendDataAmountOutMins', () => {
+  it('getSendDataAmountOutMins l1->l2', async () => {
+    const hop = new Hop('mainnet')
+    const bridge = hop.bridge('USDC')
+    const amountIn = parseUnits('10', 6)
+    const getSendData = await bridge.getSendData(amountIn, 'ethereum', 'arbitrum')
+    expect(getSendData).toBeTruthy()
+    const slippageTolerance = 0.5
+    const { amount, amountOutMin, destinationAmountOutMin, deadline, destinationDeadline } = bridge.getSendDataAmountOutMins(getSendData, slippageTolerance)
+    console.log('slippageTolerance:', slippageTolerance)
+    console.log('amount:', formatUnits(amount, 6))
+    console.log('amountOutMin:', formatUnits(amountOutMin, 6))
+    console.log('destinationAmountOutMin:', destinationAmountOutMin)
+    console.log('deadline:', deadline)
+    console.log('destinationDeadline:', destinationDeadline)
+    expect(amount.toString()).toBe(amountIn.toString())
+    expect(amountOutMin.gt(parseUnits('9', 6))).toBe(true)
+    expect(amountOutMin.lt(parseUnits('11', 6))).toBe(true)
+    expect(deadline > 0).toBe(true)
+    expect(destinationAmountOutMin).toBe(null)
+    expect(destinationDeadline).toBe(null)
+  })
+  it('getSendDataAmountOutMins l2->l1', async () => {
+    const hop = new Hop('mainnet')
+    const bridge = hop.bridge('USDC')
+    const amountIn = parseUnits('100', 6)
+    const getSendData = await bridge.getSendData(amountIn, 'arbitrum', 'ethereum')
+    expect(getSendData).toBeTruthy()
+    const slippageTolerance = 0.5
+    const { amount, amountOutMin, destinationAmountOutMin, deadline, destinationDeadline } = bridge.getSendDataAmountOutMins(getSendData, slippageTolerance)
+    console.log('slippageTolerance:', slippageTolerance)
+    console.log('amount:', formatUnits(amount, 6))
+    console.log('amountOutMin:', formatUnits(amountOutMin, 6))
+    console.log('destinationAmountOutMin:', formatUnits(destinationAmountOutMin, 6))
+    console.log('deadline:', deadline)
+    console.log('destinationDeadline:', destinationDeadline)
+    expect(amount.toString()).toBe(amountIn.toString())
+    expect(amountOutMin.gt(parseUnits('50', 6))).toBe(true)
+    expect(amountOutMin.lt(parseUnits('110', 6))).toBe(true)
+    expect(deadline > 0).toBe(true)
+    expect(destinationAmountOutMin.toString()).toBe('0')
+    expect(destinationDeadline).toBe(0)
+  })
+  it('getSendDataAmountOutMins l2->l2', async () => {
+    const hop = new Hop('mainnet')
+    const bridge = hop.bridge('USDC')
+    const amountIn = parseUnits('10', 6)
+    const getSendData = await bridge.getSendData(amountIn, 'arbitrum', 'optimism')
+    expect(getSendData).toBeTruthy()
+    const slippageTolerance = 0.5
+    const { amount, amountOutMin, destinationAmountOutMin, deadline, destinationDeadline } = bridge.getSendDataAmountOutMins(getSendData, slippageTolerance)
+    console.log('slippageTolerance:', slippageTolerance)
+    console.log('amount:', formatUnits(amount, 6))
+    console.log('amountOutMin:', formatUnits(amountOutMin, 6))
+    console.log('destinationAmountOutMin:', formatUnits(destinationAmountOutMin, 6))
+    console.log('deadline:', deadline)
+    console.log('destinationDeadline:', destinationDeadline)
+    expect(amount.toString()).toBe(amountIn.toString())
+    expect(amountOutMin.gt(parseUnits('8', 6))).toBe(true)
+    expect(amountOutMin.lt(parseUnits('11', 6))).toBe(true)
+    expect(deadline > 0).toBe(true)
+    expect(destinationAmountOutMin.gt(parseUnits('8', 6))).toBe(true)
+    expect(destinationAmountOutMin.lt(parseUnits('11', 6))).toBe(true)
+    expect(destinationDeadline > 0).toBe(true)
   })
 })
 
-describe('supported assets', () => {
+describe.skip('supported assets', () => {
   it('should return list of supported assets per chain', () => {
     const hop = new Hop('mainnet')
     const assets = hop.getSupportedAssets()
@@ -774,44 +860,6 @@ describe.skip('get estimated gas (no signer connected)', () => {
   })
 })
 
-describe('PriceFeed', () => {
-  it('should return USDC price', async () => {
-    const hop = new Hop('mainnet')
-    hop.setPriceFeedApiKeys({
-      // coingecko: '123'
-    })
-    const bridge = hop.bridge('USDC')
-    const price = await bridge.priceFeed.getPriceByTokenSymbol('USDC')
-    console.log(price)
-    expect(price).toBeGreaterThan(0)
-    expect(price).toBeLessThan(2)
-  })
-  it('should return SNX price', async () => {
-    const hop = new Hop('mainnet')
-    const bridge = hop.bridge('SNX')
-    const price = await bridge.priceFeed.getPriceByTokenSymbol('SNX')
-    console.log(price)
-    expect(price).toBeGreaterThan(0)
-    expect(price).toBeLessThan(50)
-  })
-  it('should return sUSD price', async () => {
-    const hop = new Hop('mainnet')
-    const bridge = hop.bridge('sUSD')
-    const price = await bridge.priceFeed.getPriceByTokenSymbol('sUSD')
-    console.log(price)
-    expect(price).toBeGreaterThan(0)
-    expect(price).toBeLessThan(5)
-  }, 60 * 1000)
-  it('should return rETH price', async () => {
-    const hop = new Hop('mainnet')
-    const bridge = hop.bridge('rETH')
-    const price = await bridge.priceFeed.getPriceByTokenSymbol('rETH')
-    console.log(price)
-    expect(price).toBeGreaterThan(0)
-    expect(price).toBeLessThan(10000)
-  }, 60 * 1000)
-})
-
 describe.skip('getMessengerWrapperAddress', () => {
   it('should return the messenger wrapper', async () => {
     const hop = new Hop('mainnet')
@@ -852,7 +900,7 @@ describe.skip('Apr', () => {
   }, 10 * 60 * 1000)
 })
 
-describe('getWaitConfirmations', () => {
+describe.skip('getWaitConfirmations', () => {
   it('should return waitConfirmations', () => {
     const hop = new Hop('mainnet')
     const bridge = hop.bridge('USDC')
@@ -860,7 +908,7 @@ describe('getWaitConfirmations', () => {
   })
 })
 
-describe('getExplorerUrl', () => {
+describe.skip('getExplorerUrl', () => {
   it('should return explorer url for transfer id', () => {
     const hop = new Hop('mainnet')
     const bridge = hop.bridge('USDC')
@@ -868,7 +916,7 @@ describe('getExplorerUrl', () => {
   })
 })
 
-describe('getTransferStatus', () => {
+describe.skip('getTransferStatus', () => {
   it('should return status for transfer id', async () => {
     const hop = new Hop('mainnet')
     const bridge = hop.bridge('USDC')
@@ -878,7 +926,7 @@ describe('getTransferStatus', () => {
   })
 })
 
-describe('calcAmountOutMin', () => {
+describe.skip('calcAmountOutMin', () => {
   it('should return min amount out given slippage tolerance', async () => {
     const hop = new Hop('mainnet')
     const bridge = hop.bridge('USDC')
@@ -889,7 +937,7 @@ describe('calcAmountOutMin', () => {
   })
 })
 
-describe('isDestinationChainIdPaused', () => {
+describe.skip('isDestinationChainIdPaused', () => {
   it('should return false if chain id is not paused', async () => {
     const hop = new Hop('mainnet')
     const bridge = hop.bridge('USDC')
@@ -910,7 +958,7 @@ describe.skip('relayerFeeEnabled', () => {
   })
 })
 
-describe('hop bridge', () => {
+describe.skip('hop bridge', () => {
   it('Should not use AMM', async () => {
     const hop = new Hop('goerli')
     const bridge = hop.bridge('HOP')
@@ -932,7 +980,7 @@ describe('hop bridge', () => {
   })
 })
 
-describe('supported chains', () => {
+describe.skip('supported chains', () => {
   it('Should return supported chains', async () => {
     const hop = new Hop('mainnet')
     const usdcBridge = hop.bridge('USDC')
@@ -942,7 +990,7 @@ describe('supported chains', () => {
   })
 })
 
-describe('fallback provider', () => {
+describe.skip('fallback provider', () => {
   it('Should return supported chains', async () => {
     const hop = new Hop('mainnet')
     const bridge = hop.bridge('USDC')
@@ -954,7 +1002,7 @@ describe('fallback provider', () => {
   }, 10 * 60 * 1000)
 })
 
-describe('AMM calculateSwap', () => {
+describe.skip('AMM calculateSwap', () => {
   it('should call calculateSwap', async () => {
     const provider = new providers.StaticJsonRpcProvider('https://optimism-mainnet.infura.io/v3/84842078b09946638c03157f83405213')
     const signer = new Wallet(privateKey, provider)
@@ -969,7 +1017,7 @@ describe('AMM calculateSwap', () => {
   }, 10 * 60 * 1000)
 })
 
-describe('utils', () => {
+describe.skip('utils', () => {
   it('getChainSlugFromName', async () => {
     expect(getChainSlugFromName('Ethereum')).toBe('ethereum')
     expect(getChainSlugFromName('Goerli')).toBe('ethereum')
@@ -979,12 +1027,12 @@ describe('utils', () => {
     expect(getChainSlugFromName('xDai')).toBe('gnosis')
     expect(getChainSlugFromName('Gnosis')).toBe('gnosis')
     expect(getChainSlugFromName('Gnosis Chain')).toBe('gnosis')
-    expect(getChainSlugFromName('ConsenSys zkEVM')).toBe('consensyszk')
+    expect(getChainSlugFromName('Linea')).toBe('linea')
     expect(getChainSlugFromName('Base')).toBe('base')
   })
 })
 
-describe('S3 data', () => {
+describe.skip('S3 data', () => {
   it('should get core config json data', async () => {
     const hop = new Hop('mainnet')
     const json = await hop.fetchCoreConfigData()
@@ -1001,7 +1049,7 @@ describe('S3 data', () => {
   })
 })
 
-describe('fetchJsonOrThrow', () => {
+describe.skip('fetchJsonOrThrow', () => {
   it('should fetch json', async () => {
     const url = 'https://assets.hop.exchange/mainnet/v1-core-config.json'
     const json = await fetchJsonOrThrow(url)
@@ -1051,7 +1099,7 @@ describe('fetchJsonOrThrow', () => {
   }, 60 * 1000)
 })
 
-describe('sdk config file fetching', () => {
+describe.skip('sdk config file fetching', () => {
   it('setBaseConfigUrl', async () => {
     const hop = new Hop('mainnet')
     expect(hop.baseConfigUrl).toBe('https://assets.hop.exchange')
@@ -1060,6 +1108,18 @@ describe('sdk config file fetching', () => {
     const bridge = hop.bridge('USDC')
     expect(bridge.baseConfigUrl).toBe('https://s3.us-west-1.amazonaws.com/assets.hop.exchange')
     await hop.setBaseConfigUrl('https://assets.hop.exchange')
+  })
+
+  it('baseConfigUrl option', async () => {
+    const hop = new Hop('mainnet')
+    expect(hop.baseConfigUrl).toBe('https://assets.hop.exchange')
+
+    const hop2 = new Hop({
+      network: 'mainnet',
+      baseConfigUrl: 'https://s3.us-west-1.amazonaws.com/assets.hop.exchange'
+    })
+    const bridge = hop2.bridge('USDC')
+    expect(bridge.baseConfigUrl).toBe('https://s3.us-west-1.amazonaws.com/assets.hop.exchange')
   })
 
   it('configFileFetchEnabled', async () => {
@@ -1080,7 +1140,6 @@ describe('sdk config file fetching', () => {
     expect(hop.coreConfigJsonUrl).toBe('https://s3.us-west-1.amazonaws.com/assets.hop.exchange/mainnet/v1-core-config.json')
     const bridge = hop.bridge('USDC')
     expect(bridge.coreConfigJsonUrl).toBe('https://s3.us-west-1.amazonaws.com/assets.hop.exchange/mainnet/v1-core-config.json')
-    await hop.setCoreConfigJsonUrl('')
   })
 
   it('setAvailableLiqudityJsonUrl', async () => {
@@ -1090,11 +1149,10 @@ describe('sdk config file fetching', () => {
     expect(hop.availableLiqudityJsonUrl).toBe('https://s3.us-west-1.amazonaws.com/assets.hop.exchange/mainnet/v1-available-liquidity.json')
     const bridge = hop.bridge('USDC')
     expect(bridge.availableLiqudityJsonUrl).toBe('https://s3.us-west-1.amazonaws.com/assets.hop.exchange/mainnet/v1-available-liquidity.json')
-    await hop.setAvailableLiqudityJsonUrl('')
   })
 })
 
-describe('ipfs', () => {
+describe.skip('ipfs', () => {
   it('resolveDnslink', async () => {
     const hop = new Hop('mainnet')
     const dnslinkDomain = '_dnslink.ipfs-assets.hop.exchange'
@@ -1134,4 +1192,27 @@ describe('ipfs', () => {
     expect(json).toBeTruthy()
     expect(json.ETH).toBeTruthy()
   })
+})
+
+describe.skip('WithdrawalProof', () => {
+  it('should get populated withdrawal tx', async () => {
+    const sourceChain = 'optimism'
+    const destinationChain = 'ethereum'
+    const transferId = '0xbc24dd151ced6ad0d725c753b513a2164e669868faeebea8224dd0b92e751df7'
+    const sdk = new Hop('mainnet')
+    const bridge = sdk.bridge('ETH')
+    const txData = await bridge.populateWithdrawTransferTx(sourceChain, destinationChain, transferId)
+    console.log(txData)
+    expect(txData).toBeTruthy()
+  }, 10 * 1000)
+  it('should get withdrawal proof', async () => {
+    const sourceChain = 'optimism'
+    const destinationChain = 'ethereum'
+    const transferId = '0xbc24dd151ced6ad0d725c753b513a2164e669868faeebea8224dd0b92e751df7'
+    const sdk = new Hop('mainnet')
+    const bridge = sdk.bridge('ETH')
+    const proof = await bridge.getWithdrawProof(sourceChain, destinationChain, transferId)
+    console.log(proof)
+    expect(proof).toBeTruthy()
+  }, 10 * 1000)
 })

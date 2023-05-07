@@ -6,7 +6,7 @@ export enum ChainSlug {
   arbitrum = 'arbitrum',
   nova = 'nova',
   zkSync = 'zksync',
-  consensyszk = 'consensyszk',
+  linea = 'linea',
   scrollzk = 'scrollzk',
   base = 'base'
 }
@@ -23,7 +23,8 @@ export enum AssetSymbol {
   sUSD = 'sUSD',
   sBTC = 'sBTC',
   sETH = 'sETH',
-  rETH = 'rETH'
+  rETH = 'rETH',
+  UNI = 'UNI'
 }
 
 export type Bps = {

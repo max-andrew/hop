@@ -136,7 +136,7 @@ export function PoolDetails () {
 
   const stakingEnabled = stakingRewards.length > 0
   const selectedStakingContractAddress = stakingRewards[selectedStaking]?.stakingContractAddress
-  const showStakeMessage = !loading && walletConnected && !hasStaked && hasStakeContract
+  const showStakeMessage = !loading && walletConnected && !hasStaked && hasStakeContract && hasBalance
 
   const { poolStats } = usePoolStats()
   const [networkShowsAPRAlert, setNetworkShowsAPRAlert] = useState(false)

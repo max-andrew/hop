@@ -5,15 +5,17 @@
 ### Enumeration Members
 
 - [arbitrum](Slug.md#arbitrum)
-- [consensyszk](Slug.md#consensyszk)
+- [base](Slug.md#base)
 - [ethereum](Slug.md#ethereum)
 - [gnosis](Slug.md#gnosis)
 - [goerli](Slug.md#goerli)
 - [kovan](Slug.md#kovan)
+- [linea](Slug.md#linea)
 - [mainnet](Slug.md#mainnet)
 - [nova](Slug.md#nova)
 - [optimism](Slug.md#optimism)
 - [polygon](Slug.md#polygon)
+- [scrollzk](Slug.md#scrollzk)
 - [staging](Slug.md#staging)
 - [zksync](Slug.md#zksync)
 
@@ -25,9 +27,9 @@
 
 ___
 
-### <a id="consensyszk" name="consensyszk"></a> consensyszk
+### <a id="base" name="base"></a> base
 
-• **consensyszk** = ``"consensyszk"``
+• **base** = ``"base"``
 
 ___
 
@@ -55,6 +57,12 @@ ___
 
 ___
 
+### <a id="linea" name="linea"></a> linea
+
+• **linea** = ``"linea"``
+
+___
+
 ### <a id="mainnet" name="mainnet"></a> mainnet
 
 • **mainnet** = ``"mainnet"``
@@ -76,6 +84,12 @@ ___
 ### <a id="polygon" name="polygon"></a> polygon
 
 • **polygon** = ``"polygon"``
+
+___
+
+### <a id="scrollzk" name="scrollzk"></a> scrollzk
+
+• **scrollzk** = ``"scrollzk"``
 
 ___
 

@@ -1,3 +1,7 @@
+import fetch from 'isomorphic-fetch'
+import { PriceFeed as PriceFeedSdk } from '@hop-protocol/sdk'
+import { coingeckoApiKey } from './config'
+
 const cache: {
   [tokenSymbol: string]: Promise<any>
 } = {}
@@ -20,6 +24,19 @@ export class PriceFeed {
     SNX: 'havven',
     SUSD: 'nusd',
     RETH: 'rocket-pool-eth'
+  }
+
+  instance: PriceFeedSdk
+
+  constructor () {
+    this.instance = new PriceFeedSdk({
+      coingecko: coingeckoApiKey
+    })
+  }
+
+  async getPriceByTokenSymbol (tokenSymbol: string) {
+    const price = await this.instance.getPriceByTokenSymbol(tokenSymbol)
+    return price
   }
 
   private getCoinId (tokenSymbol: string) {
@@ -45,7 +62,15 @@ export class PriceFeed {
     if (!coinId) {
       throw new Error(`coinId not found for token symbol "${tokenSymbol}"`)
     }
-    const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=daily`
+
+    let baseUrl
+    if (coingeckoApiKey) {
+      baseUrl = 'https://pro-api.coingecko.com'
+    } else {
+      baseUrl = 'https://api.coingecko.com'
+    }
+    const url = `${baseUrl}/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=daily&x_cg_pro_api_key=${coingeckoApiKey}`
+
     return fetch(url)
       .then(res => res.json())
       .then(json => {

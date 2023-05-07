@@ -31,6 +31,8 @@ Token
 - [chains](Token.md#chains)
 - [configFileFetchEnabled](Token.md#configfilefetchenabled)
 - [contract](Token.md#contract)
+- [customAvailableLiquidityJsonUrl](Token.md#customavailableliquidityjsonurl)
+- [customCoreConfigJsonUrl](Token.md#customcoreconfigjsonurl)
 - [decimals](Token.md#decimals)
 - [destinationFeeGasPriceMultiplier](Token.md#destinationfeegaspricemultiplier)
 - [fees](Token.md#fees)
@@ -44,8 +46,10 @@ Token
 
 ### Accessors
 
+- [availableLiqudityJsonUrl](Token.md#availableliqudityjsonurl)
 - [chainId](Token.md#chainid)
 - [configChains](Token.md#configchains)
+- [coreConfigJsonUrl](Token.md#coreconfigjsonurl)
 - [imageUrl](Token.md#imageurl)
 - [isNativeToken](Token.md#isnativetoken)
 - [nativeTokenSymbol](Token.md#nativetokensymbol)
@@ -63,7 +67,13 @@ Token
 - [connect](Token.md#connect)
 - [eq](Token.md#eq)
 - [estimateOptimismL1FeeFromData](Token.md#estimateoptimisml1feefromdata)
+- [fetchBonderAvailableLiquidityData](Token.md#fetchbonderavailableliquiditydata)
+- [fetchBonderAvailableLiquidityDataWithIpfsFallback](Token.md#fetchbonderavailableliquiditydatawithipfsfallback)
 - [fetchConfigFromS3](Token.md#fetchconfigfroms3)
+- [fetchCoreConfigData](Token.md#fetchcoreconfigdata)
+- [fetchCoreConfigDataWithIpfsFallback](Token.md#fetchcoreconfigdatawithipfsfallback)
+- [fetchIpfsBonderAvailableLiquidityData](Token.md#fetchipfsbonderavailableliquiditydata)
+- [fetchIpfsCoreConfigData](Token.md#fetchipfscoreconfigdata)
 - [geConfigChains](Token.md#geconfigchains)
 - [getArbChainAddress](Token.md#getarbchainaddress)
 - [getBumpedGasPrice](Token.md#getbumpedgasprice)
@@ -80,8 +90,10 @@ Token
 - [getExplorerUrlForTransferId](Token.md#getexplorerurlfortransferid)
 - [getFeeBps](Token.md#getfeebps)
 - [getImageUrl](Token.md#getimageurl)
+- [getIpfsBaseConfigUrl](Token.md#getipfsbaseconfigurl)
 - [getL1AmbBridgeAddress](Token.md#getl1ambbridgeaddress)
 - [getL1BridgeAddress](Token.md#getl1bridgeaddress)
+- [getL1BridgeWrapperAddress](Token.md#getl1bridgewrapperaddress)
 - [getL1CanonicalBridgeAddress](Token.md#getl1canonicalbridgeaddress)
 - [getL1CanonicalTokenAddress](Token.md#getl1canonicaltokenaddress)
 - [getL1PosErc20PredicateAddress](Token.md#getl1poserc20predicateaddress)
@@ -109,7 +121,6 @@ Token
 - [getWethContract](Token.md#getwethcontract)
 - [getWrapTokenEstimatedGas](Token.md#getwraptokenestimatedgas)
 - [getWrappedToken](Token.md#getwrappedtoken)
-- [init](Token.md#init)
 - [isValidChain](Token.md#isvalidchain)
 - [isValidNetwork](Token.md#isvalidnetwork)
 - [needsApproval](Token.md#needsapproval)
@@ -117,13 +128,16 @@ Token
 - [populateApproveTx](Token.md#populateapprovetx)
 - [populateUnwrapTokenTx](Token.md#populateunwraptokentx)
 - [populateWrapTokenTx](Token.md#populatewraptokentx)
+- [resolveDnslink](Token.md#resolvednslink)
 - [sendTransaction](Token.md#sendtransaction)
+- [setAvailableLiqudityJsonUrl](Token.md#setavailableliqudityjsonurl)
 - [setBaseConfigUrl](Token.md#setbaseconfigurl)
 - [setChainProvider](Token.md#setchainprovider)
 - [setChainProviderUrls](Token.md#setchainproviderurls)
 - [setChainProviders](Token.md#setchainproviders)
 - [setConfigAddresses](Token.md#setconfigaddresses)
 - [setConfigFileFetchEnabled](Token.md#setconfigfilefetchenabled)
+- [setCoreConfigJsonUrl](Token.md#setcoreconfigjsonurl)
 - [setGasPriceMultiplier](Token.md#setgaspricemultiplier)
 - [toChainModel](Token.md#tochainmodel)
 - [toJSON](Token.md#tojson)
@@ -139,7 +153,7 @@ Token
 
 ### <a id="constructor" name="constructor"></a> constructor
 
-• **new Token**(`network`, `chain`, `address`, `decimals`, `symbol`, `name`, `image`, `signer?`, `chainProviders?`)
+• **new Token**(`networkOrOptionsObject`, `chain?`, `address?`, `decimals?`, `symbol?`, `name?`, `image?`, `signer?`, `chainProviders?`)
 
 **`Desc`**
 
@@ -149,13 +163,13 @@ Instantiates Token class.
 
 | Name | Type | Description |
 | :------ | :------ | :------ |
-| `network` | `string` | L1 network name (e.g. 'mainnet', 'kovan', 'goerli') |
-| `chain` | [`TChain`](../modules.md#tchain) | - |
-| `address` | `string` | Token address. |
-| `decimals` | `number` | Token decimals. |
-| `symbol` | `string` | Token symbol. |
-| `name` | `string` | Token name. |
-| `image` | `string` | - |
+| `networkOrOptionsObject` | `string` \| `TokenConstructorOptions` | L1 network name (e.g. 'mainnet', 'kovan', 'goerli') |
+| `chain?` | [`TChain`](../modules.md#tchain) | Chain |
+| `address?` | `string` | Token address. |
+| `decimals?` | `number` | Token decimals. |
+| `symbol?` | `string` | Token symbol. |
+| `name?` | `string` | Token name. |
+| `image?` | `string` | - |
 | `signer?` | `Provider` \| `Signer` | Ethers signer. |
 | `chainProviders?` | `ChainProviders` | - |
 
@@ -189,7 +203,7 @@ ___
 
 ### <a id="baseconfigurl" name="baseconfigurl"></a> baseConfigUrl
 
-• **baseConfigUrl**: `string` = `globalBaseConfigUrl`
+• **baseConfigUrl**: `string` = `defaultBaseConfigUrl`
 
 #### Inherited from
 
@@ -245,7 +259,7 @@ ___
 
 ### <a id="configfilefetchenabled" name="configfilefetchenabled"></a> configFileFetchEnabled
 
-• **configFileFetchEnabled**: `boolean` = `globalConfigFileFetchEnabled`
+• **configFileFetchEnabled**: `boolean` = `true`
 
 #### Inherited from
 
@@ -256,6 +270,26 @@ ___
 ### <a id="contract" name="contract"></a> contract
 
 • `Readonly` **contract**: `Contract`
+
+___
+
+### <a id="customavailableliquidityjsonurl" name="customavailableliquidityjsonurl"></a> customAvailableLiquidityJsonUrl
+
+• **customAvailableLiquidityJsonUrl**: `string` = `''`
+
+#### Inherited from
+
+[Base](Base.md).[customAvailableLiquidityJsonUrl](Base.md#customavailableliquidityjsonurl)
+
+___
+
+### <a id="customcoreconfigjsonurl" name="customcoreconfigjsonurl"></a> customCoreConfigJsonUrl
+
+• **customCoreConfigJsonUrl**: `string` = `''`
+
+#### Inherited from
+
+[Base](Base.md).[customCoreConfigJsonUrl](Base.md#customcoreconfigjsonurl)
 
 ___
 
@@ -371,13 +405,27 @@ Ethers signer or provider
 
 ## Accessors
 
-### <a id="chainid" name="chainid"></a> chainId
+### <a id="availableliqudityjsonurl" name="availableliqudityjsonurl"></a> availableLiqudityJsonUrl
 
-• `get` **chainId**(): `void`
+• `get` **availableLiqudityJsonUrl**(): `string`
 
 #### Returns
 
-`void`
+`string`
+
+#### Inherited from
+
+Base.availableLiqudityJsonUrl
+
+___
+
+### <a id="chainid" name="chainid"></a> chainId
+
+• `get` **chainId**(): `number`
+
+#### Returns
+
+`number`
 
 ___
 
@@ -392,6 +440,20 @@ ___
 #### Inherited from
 
 Base.configChains
+
+___
+
+### <a id="coreconfigjsonurl" name="coreconfigjsonurl"></a> coreConfigJsonUrl
+
+• `get` **coreConfigJsonUrl**(): `string`
+
+#### Returns
+
+`string`
+
+#### Inherited from
+
+Base.coreConfigJsonUrl
 
 ___
 
@@ -508,7 +570,7 @@ ___
 
 ### <a id="allowance" name="allowance"></a> allowance
 
-▸ **allowance**(`spender`, `address?`): `Promise`<`any`\>
+▸ **allowance**(`spender`, `address?`): `Promise`<`BigNumber`\>
 
 **`Desc`**
 
@@ -537,7 +599,7 @@ console.log(allowance)
 
 #### Returns
 
-`Promise`<`any`\>
+`Promise`<`BigNumber`\>
 
 Ethers Transaction object.
 
@@ -545,7 +607,7 @@ ___
 
 ### <a id="approve" name="approve"></a> approve
 
-▸ **approve**(`spender`, `amount?`): `Promise`<`TransactionResponse`\>
+▸ **approve**(`spender`, `amount?`): `Promise`<`any`\>
 
 **`Desc`**
 
@@ -571,7 +633,7 @@ const tx = await bridge.approve(Chain.Gnosis, spender, amount)
 
 #### Returns
 
-`Promise`<`TransactionResponse`\>
+`Promise`<`any`\>
 
 Ethers Transaction object.
 
@@ -597,9 +659,9 @@ const allowance = bridge.allowance(Chain.Gnosis, spender)
 
 #### Parameters
 
-| Name | Type |
-| :------ | :------ |
-| `address?` | `string` |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `address?` | `string` | account address. |
 
 #### Returns
 
@@ -669,6 +731,34 @@ ___
 
 ___
 
+### <a id="fetchbonderavailableliquiditydata" name="fetchbonderavailableliquiditydata"></a> fetchBonderAvailableLiquidityData
+
+▸ **fetchBonderAvailableLiquidityData**(): `Promise`<`any`\>
+
+#### Returns
+
+`Promise`<`any`\>
+
+#### Inherited from
+
+[Base](Base.md).[fetchBonderAvailableLiquidityData](Base.md#fetchbonderavailableliquiditydata)
+
+___
+
+### <a id="fetchbonderavailableliquiditydatawithipfsfallback" name="fetchbonderavailableliquiditydatawithipfsfallback"></a> fetchBonderAvailableLiquidityDataWithIpfsFallback
+
+▸ **fetchBonderAvailableLiquidityDataWithIpfsFallback**(): `Promise`<`any`\>
+
+#### Returns
+
+`Promise`<`any`\>
+
+#### Inherited from
+
+[Base](Base.md).[fetchBonderAvailableLiquidityDataWithIpfsFallback](Base.md#fetchbonderavailableliquiditydatawithipfsfallback)
+
+___
+
 ### <a id="fetchconfigfroms3" name="fetchconfigfroms3"></a> fetchConfigFromS3
 
 ▸ **fetchConfigFromS3**(): `Promise`<`any`\>
@@ -680,6 +770,62 @@ ___
 #### Inherited from
 
 [Base](Base.md).[fetchConfigFromS3](Base.md#fetchconfigfroms3)
+
+___
+
+### <a id="fetchcoreconfigdata" name="fetchcoreconfigdata"></a> fetchCoreConfigData
+
+▸ **fetchCoreConfigData**(): `Promise`<`any`\>
+
+#### Returns
+
+`Promise`<`any`\>
+
+#### Inherited from
+
+[Base](Base.md).[fetchCoreConfigData](Base.md#fetchcoreconfigdata)
+
+___
+
+### <a id="fetchcoreconfigdatawithipfsfallback" name="fetchcoreconfigdatawithipfsfallback"></a> fetchCoreConfigDataWithIpfsFallback
+
+▸ **fetchCoreConfigDataWithIpfsFallback**(): `Promise`<`any`\>
+
+#### Returns
+
+`Promise`<`any`\>
+
+#### Inherited from
+
+[Base](Base.md).[fetchCoreConfigDataWithIpfsFallback](Base.md#fetchcoreconfigdatawithipfsfallback)
+
+___
+
+### <a id="fetchipfsbonderavailableliquiditydata" name="fetchipfsbonderavailableliquiditydata"></a> fetchIpfsBonderAvailableLiquidityData
+
+▸ **fetchIpfsBonderAvailableLiquidityData**(): `Promise`<`any`\>
+
+#### Returns
+
+`Promise`<`any`\>
+
+#### Inherited from
+
+[Base](Base.md).[fetchIpfsBonderAvailableLiquidityData](Base.md#fetchipfsbonderavailableliquiditydata)
+
+___
+
+### <a id="fetchipfscoreconfigdata" name="fetchipfscoreconfigdata"></a> fetchIpfsCoreConfigData
+
+▸ **fetchIpfsCoreConfigData**(): `Promise`<`any`\>
+
+#### Returns
+
+`Promise`<`any`\>
+
+#### Inherited from
+
+[Base](Base.md).[fetchIpfsCoreConfigData](Base.md#fetchipfscoreconfigdata)
 
 ___
 
@@ -699,7 +845,7 @@ ___
 
 ### <a id="getarbchainaddress" name="getarbchainaddress"></a> getArbChainAddress
 
-▸ **getArbChainAddress**(`token`, `chain`): `any`
+▸ **getArbChainAddress**(`token`, `chain`): `string`
 
 #### Parameters
 
@@ -710,7 +856,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -738,10 +884,10 @@ console.log(bumpedGasPrice.toNumber())
 
 #### Parameters
 
-| Name | Type |
-| :------ | :------ |
-| `signer` | [`TProvider`](../modules.md#tprovider) |
-| `percent` | `number` |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `signer` | [`TProvider`](../modules.md#tprovider) | Ether's Signer |
+| `percent` | `number` | Percentage to bump by. |
 
 #### Returns
 
@@ -765,9 +911,9 @@ Returns Chain ID for specified Chain model.
 
 #### Parameters
 
-| Name | Type |
-| :------ | :------ |
-| `chain` | [`Chain`](Chain.md) |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `chain` | [`Chain`](Chain.md) | Chain model. |
 
 #### Returns
 
@@ -783,7 +929,7 @@ ___
 
 ### <a id="getchainprovider" name="getchainprovider"></a> getChainProvider
 
-▸ **getChainProvider**(`chain`): `Provider`
+▸ **getChainProvider**(`chain`): `any`
 
 **`Desc`**
 
@@ -791,15 +937,15 @@ Returns Ethers provider for specified Chain model.
 
 #### Parameters
 
-| Name | Type |
-| :------ | :------ |
-| `chain` | `string` \| [`Chain`](Chain.md) |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `chain` | `string` \| [`Chain`](Chain.md) | Chain model. |
 
 #### Returns
 
-`Provider`
+`any`
 
-- Ethers provider.
+Ethers provider.
 
 #### Inherited from
 
@@ -809,11 +955,11 @@ ___
 
 ### <a id="getchainproviderurls" name="getchainproviderurls"></a> getChainProviderUrls
 
-▸ **getChainProviderUrls**(): `Record`<`string`, `string`\>
+▸ **getChainProviderUrls**(): `any`
 
 #### Returns
 
-`Record`<`string`, `string`\>
+`any`
 
 #### Inherited from
 
@@ -823,11 +969,11 @@ ___
 
 ### <a id="getchainproviders" name="getchainproviders"></a> getChainProviders
 
-▸ **getChainProviders**(): `Record`<`string`, `Provider`\>
+▸ **getChainProviders**(): `any`
 
 #### Returns
 
-`Record`<`string`, `Provider`\>
+`any`
 
 #### Inherited from
 
@@ -991,9 +1137,29 @@ ___
 
 ___
 
+### <a id="getipfsbaseconfigurl" name="getipfsbaseconfigurl"></a> getIpfsBaseConfigUrl
+
+▸ **getIpfsBaseConfigUrl**(`ipfsHash`): `string`
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `ipfsHash` | `string` |
+
+#### Returns
+
+`string`
+
+#### Inherited from
+
+[Base](Base.md).[getIpfsBaseConfigUrl](Base.md#getipfsbaseconfigurl)
+
+___
+
 ### <a id="getl1ambbridgeaddress" name="getl1ambbridgeaddress"></a> getL1AmbBridgeAddress
 
-▸ **getL1AmbBridgeAddress**(`token`, `chain`): `any`
+▸ **getL1AmbBridgeAddress**(`token`, `chain`): `string`
 
 #### Parameters
 
@@ -1004,7 +1170,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -1014,7 +1180,7 @@ ___
 
 ### <a id="getl1bridgeaddress" name="getl1bridgeaddress"></a> getL1BridgeAddress
 
-▸ **getL1BridgeAddress**(`token`, `chain`): `any`
+▸ **getL1BridgeAddress**(`token`, `chain`): `string`
 
 #### Parameters
 
@@ -1025,7 +1191,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -1033,9 +1199,31 @@ ___
 
 ___
 
+### <a id="getl1bridgewrapperaddress" name="getl1bridgewrapperaddress"></a> getL1BridgeWrapperAddress
+
+▸ **getL1BridgeWrapperAddress**(`token`, `sourceChain`, `destinationChain`): `string`
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `token` | [`TToken`](../modules.md#ttoken) |
+| `sourceChain` | [`TChain`](../modules.md#tchain) |
+| `destinationChain` | [`TChain`](../modules.md#tchain) |
+
+#### Returns
+
+`string`
+
+#### Inherited from
+
+[Base](Base.md).[getL1BridgeWrapperAddress](Base.md#getl1bridgewrapperaddress)
+
+___
+
 ### <a id="getl1canonicalbridgeaddress" name="getl1canonicalbridgeaddress"></a> getL1CanonicalBridgeAddress
 
-▸ **getL1CanonicalBridgeAddress**(`token`, `chain`): `any`
+▸ **getL1CanonicalBridgeAddress**(`token`, `chain`): `string`
 
 #### Parameters
 
@@ -1046,7 +1234,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -1056,7 +1244,7 @@ ___
 
 ### <a id="getl1canonicaltokenaddress" name="getl1canonicaltokenaddress"></a> getL1CanonicalTokenAddress
 
-▸ **getL1CanonicalTokenAddress**(`token`, `chain`): `any`
+▸ **getL1CanonicalTokenAddress**(`token`, `chain`): `string`
 
 #### Parameters
 
@@ -1067,7 +1255,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -1077,7 +1265,7 @@ ___
 
 ### <a id="getl1poserc20predicateaddress" name="getl1poserc20predicateaddress"></a> getL1PosErc20PredicateAddress
 
-▸ **getL1PosErc20PredicateAddress**(`token`, `chain`): `any`
+▸ **getL1PosErc20PredicateAddress**(`token`, `chain`): `string`
 
 #### Parameters
 
@@ -1088,7 +1276,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -1098,7 +1286,7 @@ ___
 
 ### <a id="getl1posrootchainmanageraddress" name="getl1posrootchainmanageraddress"></a> getL1PosRootChainManagerAddress
 
-▸ **getL1PosRootChainManagerAddress**(`token`, `chain`): `any`
+▸ **getL1PosRootChainManagerAddress**(`token`, `chain`): `string`
 
 #### Parameters
 
@@ -1109,7 +1297,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -1119,7 +1307,7 @@ ___
 
 ### <a id="getl2ambbridgeaddress" name="getl2ambbridgeaddress"></a> getL2AmbBridgeAddress
 
-▸ **getL2AmbBridgeAddress**(`token`, `chain`): `any`
+▸ **getL2AmbBridgeAddress**(`token`, `chain`): `string`
 
 #### Parameters
 
@@ -1130,7 +1318,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -1140,7 +1328,7 @@ ___
 
 ### <a id="getl2ammwrapperaddress" name="getl2ammwrapperaddress"></a> getL2AmmWrapperAddress
 
-▸ **getL2AmmWrapperAddress**(`token`, `chain`): `any`
+▸ **getL2AmmWrapperAddress**(`token`, `chain`): `string`
 
 #### Parameters
 
@@ -1151,7 +1339,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -1161,7 +1349,7 @@ ___
 
 ### <a id="getl2bridgeaddress" name="getl2bridgeaddress"></a> getL2BridgeAddress
 
-▸ **getL2BridgeAddress**(`token`, `chain`): `any`
+▸ **getL2BridgeAddress**(`token`, `chain`): `string`
 
 #### Parameters
 
@@ -1172,7 +1360,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -1182,7 +1370,7 @@ ___
 
 ### <a id="getl2canonicalbridgeaddress" name="getl2canonicalbridgeaddress"></a> getL2CanonicalBridgeAddress
 
-▸ **getL2CanonicalBridgeAddress**(`token`, `chain`): `any`
+▸ **getL2CanonicalBridgeAddress**(`token`, `chain`): `string`
 
 #### Parameters
 
@@ -1193,7 +1381,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -1203,7 +1391,7 @@ ___
 
 ### <a id="getl2canonicaltokenaddress" name="getl2canonicaltokenaddress"></a> getL2CanonicalTokenAddress
 
-▸ **getL2CanonicalTokenAddress**(`token`, `chain`): `any`
+▸ **getL2CanonicalTokenAddress**(`token`, `chain`): `string`
 
 #### Parameters
 
@@ -1214,7 +1402,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -1224,7 +1412,7 @@ ___
 
 ### <a id="getl2hopbridgetokenaddress" name="getl2hopbridgetokenaddress"></a> getL2HopBridgeTokenAddress
 
-▸ **getL2HopBridgeTokenAddress**(`token`, `chain`): `any`
+▸ **getL2HopBridgeTokenAddress**(`token`, `chain`): `string`
 
 #### Parameters
 
@@ -1235,7 +1423,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -1245,7 +1433,7 @@ ___
 
 ### <a id="getl2saddlelptokenaddress" name="getl2saddlelptokenaddress"></a> getL2SaddleLpTokenAddress
 
-▸ **getL2SaddleLpTokenAddress**(`token`, `chain`): `any`
+▸ **getL2SaddleLpTokenAddress**(`token`, `chain`): `string`
 
 #### Parameters
 
@@ -1256,7 +1444,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -1266,7 +1454,7 @@ ___
 
 ### <a id="getl2saddleswapaddress" name="getl2saddleswapaddress"></a> getL2SaddleSwapAddress
 
-▸ **getL2SaddleSwapAddress**(`token`, `chain`): `any`
+▸ **getL2SaddleSwapAddress**(`token`, `chain`): `string`
 
 #### Parameters
 
@@ -1277,7 +1465,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -1303,7 +1491,7 @@ ___
 
 ### <a id="getproviderrpcurl" name="getproviderrpcurl"></a> getProviderRpcUrl
 
-▸ **getProviderRpcUrl**(`provider`): `any`
+▸ **getProviderRpcUrl**(`provider`): `string`
 
 #### Parameters
 
@@ -1313,7 +1501,7 @@ ___
 
 #### Returns
 
-`any`
+`string`
 
 #### Inherited from
 
@@ -1552,20 +1740,6 @@ ___
 
 ___
 
-### <a id="init" name="init"></a> init
-
-▸ **init**(): `Promise`<`void`\>
-
-#### Returns
-
-`Promise`<`void`\>
-
-#### Inherited from
-
-[Base](Base.md).[init](Base.md#init)
-
-___
-
 ### <a id="isvalidchain" name="isvalidchain"></a> isValidChain
 
 ▸ **isValidChain**(`chain`): `boolean`
@@ -1608,7 +1782,7 @@ ___
 
 ### <a id="needsapproval" name="needsapproval"></a> needsApproval
 
-▸ **needsApproval**(`spender`, `amount`, `address?`): `Promise`<`any`\>
+▸ **needsApproval**(`spender`, `amount`, `address?`): `Promise`<`boolean`\>
 
 #### Parameters
 
@@ -1620,7 +1794,7 @@ ___
 
 #### Returns
 
-`Promise`<`any`\>
+`Promise`<`boolean`\>
 
 ___
 
@@ -1683,9 +1857,29 @@ ___
 
 ___
 
+### <a id="resolvednslink" name="resolvednslink"></a> resolveDnslink
+
+▸ **resolveDnslink**(`dnslinkDomain`): `Promise`<`string`\>
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `dnslinkDomain` | `string` |
+
+#### Returns
+
+`Promise`<`string`\>
+
+#### Inherited from
+
+[Base](Base.md).[resolveDnslink](Base.md#resolvednslink)
+
+___
+
 ### <a id="sendtransaction" name="sendtransaction"></a> sendTransaction
 
-▸ **sendTransaction**(`transactionRequest`, `chain`): `Promise`<`TransactionResponse`\>
+▸ **sendTransaction**(`transactionRequest`, `chain`): `Promise`<`any`\>
 
 #### Parameters
 
@@ -1696,7 +1890,7 @@ ___
 
 #### Returns
 
-`Promise`<`TransactionResponse`\>
+`Promise`<`any`\>
 
 #### Inherited from
 
@@ -1704,9 +1898,9 @@ ___
 
 ___
 
-### <a id="setbaseconfigurl" name="setbaseconfigurl"></a> setBaseConfigUrl
+### <a id="setavailableliqudityjsonurl" name="setavailableliqudityjsonurl"></a> setAvailableLiqudityJsonUrl
 
-▸ **setBaseConfigUrl**(`url`): `void`
+▸ **setAvailableLiqudityJsonUrl**(`url`): `Promise`<`void`\>
 
 #### Parameters
 
@@ -1716,7 +1910,27 @@ ___
 
 #### Returns
 
-`void`
+`Promise`<`void`\>
+
+#### Inherited from
+
+[Base](Base.md).[setAvailableLiqudityJsonUrl](Base.md#setavailableliqudityjsonurl)
+
+___
+
+### <a id="setbaseconfigurl" name="setbaseconfigurl"></a> setBaseConfigUrl
+
+▸ **setBaseConfigUrl**(`url`): `Promise`<`void`\>
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `url` | `string` |
+
+#### Returns
+
+`Promise`<`void`\>
 
 #### Inherited from
 
@@ -1825,6 +2039,26 @@ ___
 
 ___
 
+### <a id="setcoreconfigjsonurl" name="setcoreconfigjsonurl"></a> setCoreConfigJsonUrl
+
+▸ **setCoreConfigJsonUrl**(`url`): `Promise`<`any`\>
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `url` | `string` |
+
+#### Returns
+
+`Promise`<`any`\>
+
+#### Inherited from
+
+[Base](Base.md).[setCoreConfigJsonUrl](Base.md#setcoreconfigjsonurl)
+
+___
+
 ### <a id="setgaspricemultiplier" name="setgaspricemultiplier"></a> setGasPriceMultiplier
 
 ▸ **setGasPriceMultiplier**(`gasPriceMultiplier`): `number`
@@ -1855,15 +2089,15 @@ Returns a Chain model instance with connected provider.
 
 #### Parameters
 
-| Name | Type |
-| :------ | :------ |
-| `chain` | [`TChain`](../modules.md#tchain) |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `chain` | [`TChain`](../modules.md#tchain) | Chain name or model. |
 
 #### Returns
 
 [`Chain`](Chain.md)
 
-- Chain model with connected provider.
+Chain model with connected provider.
 
 #### Inherited from
 
@@ -1873,20 +2107,11 @@ ___
 
 ### <a id="tojson" name="tojson"></a> toJSON
 
-▸ **toJSON**(): `Object`
+▸ **toJSON**(): `any`
 
 #### Returns
 
-`Object`
-
-| Name | Type |
-| :------ | :------ |
-| `address` | `string` |
-| `chain` | [`Chain`](Chain.md) |
-| `decimals` | `number` |
-| `image` | `string` |
-| `name` | `string` |
-| `symbol` | `string` |
+`any`
 
 ___
 
@@ -1900,15 +2125,15 @@ Returns a Token instance.
 
 #### Parameters
 
-| Name | Type |
-| :------ | :------ |
-| `token` | [`TToken`](../modules.md#ttoken) |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `token` | [`TToken`](../modules.md#ttoken) | Token name or model. |
 
 #### Returns
 
 [`TokenModel`](TokenModel.md)
 
-- Token model.
+Token model.
 
 #### Inherited from
 
@@ -1982,7 +2207,7 @@ ___
 
 ### <a id="unwraptoken" name="unwraptoken"></a> unwrapToken
 
-▸ **unwrapToken**(`amount`): `Promise`<`TransactionResponse`\>
+▸ **unwrapToken**(`amount`): `Promise`<`any`\>
 
 #### Parameters
 
@@ -1992,7 +2217,7 @@ ___
 
 #### Returns
 
-`Promise`<`TransactionResponse`\>
+`Promise`<`any`\>
 
 ___
 

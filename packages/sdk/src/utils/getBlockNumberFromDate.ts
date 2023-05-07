@@ -15,7 +15,7 @@ export async function getBlockNumberFromDate (chain: Chain, timestamp: number): 
   return getBlockNumberFromDateUsingLib(chainProvider, timestamp)
 }
 
-async function getBlockNumberFromDateUsingEtherscan (chain: string, timestamp: number): Promise<number> {
+export async function getBlockNumberFromDateUsingEtherscan (chain: string, timestamp: number): Promise<number> {
   const apiKey = etherscanApiKeys[chain]
   if (!apiKey) {
     throw new Error('Please add an etherscan api key for ' + chain)
@@ -32,7 +32,7 @@ async function getBlockNumberFromDateUsingEtherscan (chain: string, timestamp: n
   return Number(json.result)
 }
 
-async function getBlockNumberFromDateUsingLib (provider: any, timestamp: number): Promise<number> {
+export async function getBlockNumberFromDateUsingLib (provider: any, timestamp: number): Promise<number> {
   const blockDater = new BlockDater(provider)
   const date = DateTime.fromSeconds(timestamp).toJSDate()
 
@@ -46,7 +46,7 @@ async function getBlockNumberFromDateUsingLib (provider: any, timestamp: number)
       }
     } catch (err) {
       retryCount++
-      console.log(`getBlockNumberFromDate: retrying ${retryCount}`)
+      // console.warn(`getBlockNumberFromDate: retrying ${retryCount}`)
       if (retryCount < 5) continue
       break
     }

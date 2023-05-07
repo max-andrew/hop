@@ -1,5 +1,7 @@
-import CoinGecko from './CoinGecko'
-import Coinbase from './Coinbase'
+import { CoinCodex } from './CoinCodex'
+import { CoinGecko } from './CoinGecko'
+import { Coinbase } from './Coinbase'
+import { Coinpaprika } from './Coinpaprika'
 
 const cache: {
   [tokenSymbol: string]: Promise<any>
@@ -17,7 +19,7 @@ interface Service {
   getPriceByTokenSymbol(symbol: string): Promise<number>
 }
 
-class PriceFeed {
+export class PriceFeed {
   cacheTimeMs = 5 * 60 * 1000
   apiKeys: ApiKeys = {}
   services: Service[] = []
@@ -25,8 +27,8 @@ class PriceFeed {
   aliases: { [tokenSymbol: string]: string } = {
     WETH: 'ETH',
     WMATIC: 'MATIC',
-    XDAI: 'DAI',
-    WXDAI: 'DAI'
+    WXDAI: 'DAI',
+    XDAI: 'DAI'
   }
 
   constructor (apiKeysMap: ApiKeys = {}) {
@@ -42,7 +44,11 @@ class PriceFeed {
   }
 
   private setServices () {
-    this.services = [new CoinGecko(this.apiKeys?.coingecko), new Coinbase()]
+    this.services = [new CoinGecko(this.apiKeys?.coingecko), new Coinbase(), new Coinpaprika(), new CoinCodex()]
+  }
+
+  prependService (service: Service) {
+    this.services.unshift(service)
   }
 
   async getPriceByTokenSymbol (tokenSymbol: string) {
@@ -66,10 +72,14 @@ class PriceFeed {
     for (const service of this.services) {
       try {
         const price = await service.getPriceByTokenSymbol(tokenSymbol)
-        if (price === null) {
-          throw new Error(`null price for ${tokenSymbol}`)
+        if (price == null) {
+          throw new Error(`null price for token "${tokenSymbol}"`)
         }
-        return price
+        const formattedPrice = this.formatPrice(tokenSymbol, price)
+        if (formattedPrice <= 0) {
+          throw new Error(`received invalid price of "${formattedPrice}" for token "${tokenSymbol}"`)
+        }
+        return formattedPrice
       } catch (err) {
         const isLastService = this.services.indexOf(service) === this.services.length - 1
         errors.push(err.message)
@@ -80,6 +90,14 @@ class PriceFeed {
         }
       }
     }
+  }
+
+  formatPrice (tokenSymbol: string, price: number) {
+    if (tokenSymbol === 'USDC' || tokenSymbol === 'USDT') {
+      return Number(price.toFixed(6))
+    }
+
+    return price
   }
 }
 

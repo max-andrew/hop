@@ -5,7 +5,8 @@ import Transaction from 'src/models/Transaction'
 import { Token, ChainSlug } from '@hop-protocol/sdk'
 import { useApp } from 'src/contexts/AppContext'
 import Network from 'src/models/Network'
-import { formatUnits } from 'ethers/lib/utils'
+import { parseUnits } from 'ethers/lib/utils'
+import { reactAppNetwork } from 'src/config'
 
 export enum MethodNames {
   convertTokens = 'convertTokens',
@@ -104,6 +105,7 @@ export function useEstimateTxCost(selectedNetwork?: Network) {
           relayerFee = BigNumber.from('1')
         }
 
+
         let estimatedGasLimit : BigNumber
         try {
           estimatedGasLimit = await bridge.estimateSendGasLimit(
@@ -129,7 +131,7 @@ export function useEstimateTxCost(selectedNetwork?: Network) {
             gnosis: token.symbol === 'ETH' ? 260000 : 390000,
             polygon: token.symbol === 'ETH' ? 260000 : 260000,
             nova: token.symbol === 'ETH' ? 500000 : 700000,
-            consensyszk: token.symbol === 'ETH' ? 500000 : 700000,
+            linea: token.symbol === 'ETH' ? 500000 : 700000,
             scrollzk: token.symbol === 'ETH' ? 500000 : 700000,
             base: token.symbol === 'ETH' ? 500000 : 700000
           }
