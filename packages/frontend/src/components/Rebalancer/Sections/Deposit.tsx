@@ -13,7 +13,6 @@ interface DepositSectionProps {
   tokenSymbol: string
   numberOfBridgedTokensReceived: string
   signer: Signer
-  gasLimit: number
   approveToken: (tokenAddress: string, spenderAddress: string, amount: string) => Promise<TransactionResponse | undefined>
   getDeadline: (confirmTimeMinutes: number) => number
   getHumanErrorMessage: (error: Error) => string
@@ -26,7 +25,6 @@ export function DepositSection(props: DepositSectionProps) {
   const tokenSymbol = props.tokenSymbol
   const numberOfBridgedTokensReceived = props.numberOfBridgedTokensReceived
   const signer = props.signer
-  const gasLimit = props.gasLimit
   const approveToken = props.approveToken
   const getDeadline = props.getDeadline
   const getHumanErrorMessage = props.getHumanErrorMessage
@@ -70,7 +68,9 @@ export function DepositSection(props: DepositSectionProps) {
     const deadline = getDeadline(4)
 
     try {
+      const gasLimit = await swapContract.estimateGas.addLiquidity([numberOfBridgedTokensReceived, 0], minToMint, deadline)
       const depositTx = await swapContract.addLiquidity([numberOfBridgedTokensReceived, 0],  minToMint, deadline, { gasLimit: gasLimit })
+      
       await depositTx.wait()
         .then((tokensReceived: string) => {
           console.log("Successfully deposited tokens")

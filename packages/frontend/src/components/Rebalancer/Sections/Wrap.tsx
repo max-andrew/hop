@@ -14,7 +14,6 @@ interface WrapSectionProps {
   tokenSymbol: string
   numberOfBridgedTokensReceived: string
   signer: ethers.Signer
-  gasLimit: number
   getHumanErrorMessage: (errorMessage: Error) => string
 }
 
@@ -25,7 +24,6 @@ export function WrapSection(props: WrapSectionProps) {
   const tokenSymbol = props.tokenSymbol
   const numberOfBridgedTokensReceived = props.numberOfBridgedTokensReceived
   const signer = props.signer
-  const gasLimit = props.gasLimit
   const getHumanErrorMessage = props.getHumanErrorMessage
 
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
@@ -38,63 +36,58 @@ export function WrapSection(props: WrapSectionProps) {
   async function wrapETH(amountToWrap: string) {
     const wETHContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
     const wethAbi = ["function deposit() payable"]
-
     const wethContract = new ethers.Contract(wETHContractAddress, wethAbi, signer)
+    const gasLimit = await wethContract.estimateGas.deposit({ value: amountToWrap })
 
     return await wethContract.deposit({ value: amountToWrap, gasLimit: gasLimit })
   }
 
-  // wrap if native
+  async function wrapDAI(amountToWrap: string) {
+    const wDAIContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
+    const wDAIAbi = ["function deposit() payable"]
+    const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
+    const gasLimit = await wDAIContract.estimateGas.deposit({ value: amountToWrap })
+
+    return wDAIContract.deposit({ value: amountToWrap, gasLimit: gasLimit })
+  }
+
   async function wrapIfNativeToken() {
     if (isNativeToken(chainSlug, tokenSymbol)) {
-      if (tokenSymbol === "ETH") {
-        try {
-          const wrapTx = await wrapETH(numberOfBridgedTokensReceived)
-          await wrapTx.wait()
-            .then(() => {
-              console.log("Successfully wrapped ETH")
-              setStatusMessage("Successfully wrapped ETH")
-              setIsTransacting(false)
-              goToNextSection()
-            })
-            .catch((error: Error) => {
-              console.error(error)
-              setStatusMessage(getHumanErrorMessage(error))
-              setIsTransacting(false)
-            })
-        } catch (error) {
-          console.error(error)
-          setStatusMessage(getHumanErrorMessage(error as Error))
+      try {
+        let wrapTx
+        if (tokenSymbol === "ETH") {
+          wrapTx = await wrapETH(numberOfBridgedTokensReceived)
+        } else if (tokenSymbol === "DAI") {
+          wrapTx = await wrapDAI(numberOfBridgedTokensReceived)
+        } else {
+          console.log("Could not identify token to wrap")
+          setStatusMessage("Error wrapping token")
           setIsTransacting(false)
+          return
         }
-      } else if (isNativeToken(chainSlug, tokenSymbol)) {
-        const wDAIContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-        const wDAIAbi = ["function deposit() payable"]
 
-        const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
-
-        try {
-          const wrapTx = await wDAIContract.deposit({ value: numberOfBridgedTokensReceived, gasLimit: gasLimit })
-          await wrapTx.wait()
-            .then(() => {
-              console.log("Successfully wrapped DAI")
-              setStatusMessage("Successfully wrapped DAI")
-              setIsTransacting(false)
-              goToNextSection()
-            })
-            .catch((error: Error) => {
-              console.error(error)
-              setStatusMessage(getHumanErrorMessage(error))
-              setIsTransacting(false)
-            })
-        } catch (error) {
-          console.error(error)
-          setStatusMessage(getHumanErrorMessage(error as Error))
-          setIsTransacting(false)
-        }
+        await wrapTx.wait()
+          .then(() => {
+            console.log("Successfully wrapped ETH")
+            setStatusMessage("Successfully wrapped ETH")
+            setIsTransacting(false)
+            goToNextSection()
+          })
+          .catch((error: Error) => {
+            console.error(error)
+            setStatusMessage(getHumanErrorMessage(error))
+            setIsTransacting(false)
+          })
+      } catch (error) {
+        console.error(error)
+        setStatusMessage(getHumanErrorMessage(error as Error))
+        setIsTransacting(false)
       }
     } else {
       console.log("Token is ERC20, no wrap necessary")
+      setStatusMessage("No wrap necessary")
+      setIsTransacting(false)
+      goToNextSection()
     }
   }
 

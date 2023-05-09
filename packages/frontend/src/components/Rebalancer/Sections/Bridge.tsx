@@ -15,7 +15,6 @@ interface BridgeSectionProps {
   chainSlug: string
   tokenSymbol: string
   signer: Signer
-  gasLimit: number
   getTokensAreStaked: (stakingContract: Contract) => Promise<boolean | undefined>
   address: Address | undefined
   erc20PositionBalance: string
@@ -32,7 +31,6 @@ export function BridgeSection(props: BridgeSectionProps) {
   const chainSlug = props.chainSlug
   const tokenSymbol = props.tokenSymbol
   const signer = props.signer
-  const gasLimit = props.gasLimit
   const getTokensAreStaked = props.getTokensAreStaked
   const address = props.address
   const erc20PositionBalance = props.erc20PositionBalance
@@ -123,6 +121,20 @@ export function BridgeSection(props: BridgeSectionProps) {
     // bridge tokens
     try {
       setStatusMessage("Sending tokens to bridge")
+
+      const gasLimit = await l2AmmWrapperContract.estimateGas.swapAndSend(
+        destinationNetworkId,
+        recipient,
+        amount,
+        bonderFee,
+        amountOutMin,
+        deadline,
+        destinationAmountOutMin,
+        destinationDeadline,
+        {
+          value: value
+        }
+      )
 
       const bridgeTx = await l2AmmWrapperContract.swapAndSend(
         destinationNetworkId,

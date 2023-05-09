@@ -19,7 +19,6 @@ interface UnstakeWithdrawSectionProps {
   chainSlug: string
   tokenSymbol: string
   signer: Signer
-  gasLimit: number
   getTokensAreStaked: (stakingContract: Contract) => Promise<boolean | undefined>
   address: Address | undefined
   approveToken: (tokenAddress: string, spenderAddress: string, amount: string) => Promise<TransactionResponse | undefined>
@@ -36,7 +35,6 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
   const tokenSymbol = props.tokenSymbol
   const signer = props.signer
   const getTokensAreStaked = props.getTokensAreStaked
-  const gasLimit = props.gasLimit
   const address = props.address
   const approveToken = props.approveToken
   const getDeadline = props.getDeadline
@@ -81,7 +79,9 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
       // unstake LP tokens
       setStatusMessage("Unstaking tokens")
       try {
+        const gasLimit = await stakingContract.estimateGas.exit()
         const stakeTx = await stakingContract.exit({ gasLimit: gasLimit })
+        
         await stakeTx.wait()
           .then(() => {
             console.log("Unstaked successfully")
@@ -173,7 +173,9 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
 
       try {
         setStatusMessage("Withdrawing tokens")
-        const removeLiquidityTx = await swapContract.removeLiquidityOneToken(amount, 0, minAmount, deadline, { gasLimit: gasLimit * 5 })
+        const gasLimit = await swapContract.estimateGas.removeLiquidityOneToken(amount, 0, minAmount, deadline)
+        const removeLiquidityTx = await swapContract.removeLiquidityOneToken(amount, 0, minAmount, deadline, { gasLimit: gasLimit })
+        
         await removeLiquidityTx.wait()
           .then(async (removeLiquidityTxReceipt: TransactionReceipt) => {
             if (typeof removeLiquidityTxReceipt !== "undefined") {

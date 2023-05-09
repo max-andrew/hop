@@ -14,7 +14,6 @@ interface StakeSectionProps {
   chainSlug: string
   tokenSymbol: string
   signer: Signer
-  gasLimit: number
   address: Address | undefined
   approveToken: (tokenAddress: string, spenderAddress: string, amount: string) => Promise<TransactionResponse | undefined>
   getHumanErrorMessage: (error: Error) => string
@@ -26,7 +25,6 @@ export function StakeSection(props: StakeSectionProps) {
   const chainSlug = props.chainSlug
   const tokenSymbol = props.tokenSymbol
   const signer = props.signer
-  const gasLimit = props.gasLimit
   const address = props.address
   const getHumanErrorMessage = props.getHumanErrorMessage
   const approveToken = props.approveToken
@@ -80,7 +78,9 @@ export function StakeSection(props: StakeSectionProps) {
     const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
 
     try {
+      const gasLimit = await stakingContract.estimateGas.stake(balance)
       const stakeTx = await stakingContract.stake(balance, { gasLimit: gasLimit })
+      
       await stakeTx.wait()
         .then(() => {
           console.log("Staked successfully")
