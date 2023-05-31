@@ -157,7 +157,9 @@ export function PoolDetails () {
 
       const chains: [string, number, string][] = []
       for (const chain of chainNames) {
-        chains.push([chain, allNetworks[chain][tokenSymbol].totalApr, allNetworks[chain][tokenSymbol].totalAprFormatted])
+        if (typeof allNetworks[chain][tokenSymbol] !== "undefined") {
+          chains.push([chain, allNetworks[chain][tokenSymbol].totalApr, allNetworks[chain][tokenSymbol].totalAprFormatted])
+        }
       }
 
       // sort chains by APR
