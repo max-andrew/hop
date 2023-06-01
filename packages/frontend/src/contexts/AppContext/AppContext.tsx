@@ -38,7 +38,7 @@ const AppContextProvider: FC = ({ children }) => {
     const hop = new Hop({
       network: reactAppNetwork,
       signer: provider?.getSigner(),
-      blocklist
+      ...(blocklist && { blocklist })
     })
     return hop
   }, [provider])
