@@ -34,18 +34,18 @@ export function UnwrapSection(props: UnwrapSectionProps) {
 
   async function unwrapETH(amountToUnwrap: string) {
     const wETHContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-    const wethAbi = ["function withdraw(uint wad) public"]
+    const wethAbi = ["function withdraw(uint256 _amount) external returns (bool)"]
     const wethContract = new ethers.Contract(wETHContractAddress, wethAbi, signer)
-    const gasLimit = await wethContract.estimateGas.withdraw(amountToUnwrap)
+    const gasLimit = await wethContract.estimateGas.withdraw(100)
 
     return await wethContract.withdraw(amountToUnwrap, { gasLimit: gasLimit })
   }
 
   async function unwrapDAI(amountToUnwrap: string) {
     const wDAIContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-    const wDAIAbi = ["function withdraw(uint256 wad) external"]
+    const wDAIAbi = ["function withdraw(uint256 wad) public"]
     const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
-    const gasLimit = await wDAIContract.estimateGas.withdraw(amountToUnwrap)
+    const gasLimit = await wDAIContract.estimateGas.withdraw(100)
 
     return wDAIContract.withdraw(amountToUnwrap, { gasLimit: gasLimit })
   }

@@ -65,6 +65,8 @@ export function BridgingStatusSection(props: BridgingStatusSectionProps) {
   async function checkBridgeStatusAndGetBondHash() {
     const bridgeStatusURL: string = `https://api.hop.exchange/v1/transfer-status?transactionHash=${bridgeTxHash}&network=${reactAppNetwork}`
 
+    console.log(bridgeStatusURL)
+
     const response = await fetch(bridgeStatusURL)
     const data = await response.json()
 

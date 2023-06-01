@@ -34,7 +34,8 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
 
   // listen for the right chain connection
   useEffect(() => {
-    if (connectedNetworkId === networkSlugToId(chainSlug)) {
+    if (connectedNetworkId && +connectedNetworkId === +networkSlugToId(chainSlug)) {
+      console.log("Networks", connectedNetworkId, "and", networkSlugToId(chainSlug), "match")
       setNetworksMatch(true)
       setBridgedFromNetworkId(connectedNetworkId)
     } else {
@@ -42,8 +43,16 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
     }
   }, [connectedNetworkId])
 
+  // exclude networks with 0 APR
+  const positiveAPRNetworks =  networks.reduce((acc: NetworkAPRTupleType[], network) => {
+    if (network && network[1] > 0) {
+      acc.push(network)
+    }
+    return acc
+  }, [])
+
   // exclude the source network
-  const potentialDestinationNetworkObjects = networks.reduce((acc: Network[], network) => {
+  const potentialDestinationNetworkObjects = positiveAPRNetworks.reduce((acc: Network[], network) => {
     const foundNetwork = findNetworkBySlug(network[0])
     if (foundNetwork && network[0] !== chainSlug) {
       acc.push(foundNetwork)
@@ -68,7 +77,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
         <Grid item xs>
           <Box display="flex" flexDirection="column" alignItems="center">
             <Box>
-              {networks.map((tuple: NetworkAPRTupleType, index: number) => (
+              {positiveAPRNetworks.map((tuple: NetworkAPRTupleType, index: number) => (
                 <Box key={index} my={2}>
                   <Typography variant="body1" color="textSecondary" align="right">{tuple[0]}</Typography>
                   <Typography variant="h3" align="right">{tuple[2]}</Typography>

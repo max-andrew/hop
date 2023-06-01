@@ -1142,8 +1142,6 @@ const PoolsProvider: FC = ({ children }) => {
   useEffect(() => { setSortedChainsWithAPRData(getSortedChainsWithAPRData(poolStats)) }, [poolStats])
 
   function getSortedChainsWithAPRData(poolStats) {
-    console.log("pool stats")
-    console.dir(poolStats)
     if (typeof poolStats === "undefined") {
       return []
     }

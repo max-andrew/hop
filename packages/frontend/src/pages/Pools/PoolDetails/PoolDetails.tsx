@@ -148,6 +148,10 @@ export function PoolDetails () {
   // return false if the network has the highest yield, APR is undefined, or the user does not have tokens deposited 
   function shouldShowAlert(): boolean {
     try {
+      if (typeof sortedChainsWithAPRData[0] === "undefined") {
+        return false
+      }
+
       // return false if APR is undefined
       if (typeof sortedChainsWithAPRData[0][1] === "undefined") {
         // console.log("APR is 0 or undefined")
