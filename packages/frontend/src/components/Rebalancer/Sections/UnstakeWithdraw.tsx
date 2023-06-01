@@ -180,7 +180,9 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
           .then(async (removeLiquidityTxReceipt: TransactionReceipt) => {
             if (typeof removeLiquidityTxReceipt !== "undefined") {
               let numberOfTokensWithdrawn: string = removeLiquidityTxReceipt.logs[2].data.toString()
-              numberOfTokensWithdrawn = parseInt(numberOfTokensWithdrawn, 16).toString()
+              console.log("numberOfTokensWithdrawn", numberOfTokensWithdrawn)
+              numberOfTokensWithdrawn = BigNumber.from(numberOfTokensWithdrawn).toString()
+              console.log("numberOfTokensWithdrawn", numberOfTokensWithdrawn)
 
               console.log("Successfully withdrew", numberOfTokensWithdrawn, "tokens")
               setStatusMessage("Successfully withdrew tokens")

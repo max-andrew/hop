@@ -122,7 +122,7 @@ export function BridgeSection(props: BridgeSectionProps) {
     try {
       setStatusMessage("Sending tokens to bridge")
 
-      const gasLimit = await l2AmmWrapperContract.estimateGas.swapAndSend(
+      console.log(
         destinationNetworkId,
         recipient,
         amount,
@@ -131,10 +131,37 @@ export function BridgeSection(props: BridgeSectionProps) {
         deadline,
         destinationAmountOutMin,
         destinationDeadline,
-        {
-          value: value
-        }
+        value
       )
+
+      const defaultSendGasLimits = {
+        ethereum: tokenSymbol === 'ETH' ? 130000 : 180000,
+        arbitrum: tokenSymbol === 'ETH' ? 500000 : 700000,
+        optimism: tokenSymbol === 'ETH' ? 225000 : 240000,
+        gnosis: tokenSymbol === 'ETH' ? 260000 : 390000,
+        polygon: tokenSymbol === 'ETH' ? 260000 : 260000,
+        nova: tokenSymbol === 'ETH' ? 500000 : 700000,
+        linea: tokenSymbol === 'ETH' ? 500000 : 700000,
+        scrollzk: tokenSymbol === 'ETH' ? 500000 : 700000,
+        base: tokenSymbol === 'ETH' ? 500000 : 700000
+      }
+      const gasLimit = typeof defaultSendGasLimits[chainSlug] !== "undefined" ? defaultSendGasLimits[chainSlug] : defaultSendGasLimits.arbitrum
+
+      /*
+        const gasLimit = await l2AmmWrapperContract.estimateGas.swapAndSend(
+          destinationNetworkId,
+          recipient,
+          amount,
+          bonderFee,
+          amountOutMin,
+          deadline,
+          destinationAmountOutMin,
+          destinationDeadline,
+          {
+            value: value
+          }
+        )
+      */
 
       const bridgeTx = await l2AmmWrapperContract.swapAndSend(
         destinationNetworkId,

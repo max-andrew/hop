@@ -35,7 +35,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
   // listen for the right chain connection
   useEffect(() => {
     if (connectedNetworkId && +connectedNetworkId === +networkSlugToId(chainSlug)) {
-      console.log("Networks", connectedNetworkId, "and", networkSlugToId(chainSlug), "match")
+      console.log("Networks", +connectedNetworkId, "and", +networkSlugToId(chainSlug), "match")
       setNetworksMatch(true)
       setBridgedFromNetworkId(connectedNetworkId)
     } else {
