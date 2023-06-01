@@ -23,13 +23,13 @@ import { StakeSection } from 'src/components/Rebalancer/Sections/Stake'
 interface RebalancerModalProps {
   showRebalancerModal: boolean
   setShowRebalancerModal: (showRebalancerModal: boolean) => void
-  poolStats: any
+  sortedChainsWithAPRData: [string, number, string][]
 }
 
 export function RebalancerModal(props: RebalancerModalProps) {
   const showRebalancerModal = props.showRebalancerModal
   const setShowRebalancerModal = props.setShowRebalancerModal
-  const poolStats = props.poolStats
+  const sortedChainsWithAPRData = props.sortedChainsWithAPRData
 
   const { address, provider, onboard, connectedNetworkId, checkConnectedNetworkId } = useWeb3Context()
   const signer = provider?.getSigner()
@@ -40,15 +40,12 @@ export function RebalancerModal(props: RebalancerModalProps) {
   const { selectedNetwork, selectSourceNetwork } = useSelectedNetwork({ l2Only: true })
   const chainSlug: string = selectedNetwork?.slug ?? ""
 
-  const [networksWithYields, setNetworksWithYields] = useState<[string, number, string][]>([])
-  useEffect(() => { setNetworksWithYields(getNetworksWithYields()) }, [poolStats])
-
   const [destinationNetworkId, setDestinationNetworkId] = useState<number>(chainSlug === "optimism" ? networkSlugToId("arbitrum") : networkSlugToId("optimism"))
   // set default to highest APR network
   useEffect(() => {
-    if (typeof networksWithYields !== "undefined" && currentStep === 0) {
+    if (typeof sortedChainsWithAPRData !== "undefined" && currentStep === 0) {
       // exclude the source network
-      const potentialDestinationNetworkIds: number[] = networksWithYields.reduce((acc: number[], network) => {
+      const potentialDestinationNetworkIds: number[] = sortedChainsWithAPRData.reduce((acc: number[], network) => {
         if (network[0] !== chainSlug) {
           acc.push(networkSlugToId(network[0]))
         }
@@ -57,7 +54,7 @@ export function RebalancerModal(props: RebalancerModalProps) {
 
       setDestinationNetworkId(potentialDestinationNetworkIds[0])
     }
-  }, [networksWithYields])
+  }, [sortedChainsWithAPRData])
 
   const [erc20PositionBalance, setERC20PositionBalance] = useState<string>("")
   const [bridgeTxHash, setBridgeTxHash] = useState<string>("")
@@ -73,41 +70,6 @@ export function RebalancerModal(props: RebalancerModalProps) {
 
 
   /* HELPER FUNCTIONS */
-
-  // get an array of potential networks, sorted by descending yield
-  function getNetworksWithYields(): [string, number, string][] {
-    try {
-      const allNetworks = poolStats
-      const chainNames = allNetworks ? Object.keys(allNetworks) : []
-
-      const chainsWithTotalAPR = chainNames.reduce((acc: [string, number, string][], chain: string) => {
-        // if APR data is undefined, break
-        if (typeof allNetworks?.[chain]?.[tokenSymbol]?.totalApr === "undefined") {
-          return acc
-        }
-
-        // include chain only if there is APR
-        if (allNetworks[chain][tokenSymbol].totalApr > 0) {
-          acc.push([chain, allNetworks[chain][tokenSymbol].totalApr, allNetworks[chain][tokenSymbol].totalAprFormatted])
-        }
-
-        return acc
-      }, [])
-
-      // sort chains by APR
-      const chainsSortedByAPR = sortTuplesDescending(chainsWithTotalAPR)
-
-      return chainsSortedByAPR
-    } catch (error) {
-      console.error(error)
-
-      return []
-    }
-
-    function sortTuplesDescending(tupleArray: [string, number, string][]): [string, number, string][] {
-      return tupleArray.sort((a, b) => b[1] - a[1])
-    }
-  }
 
   async function changeNetwork(newChainId: number): Promise<boolean> {
     try {
@@ -186,7 +148,7 @@ export function RebalancerModal(props: RebalancerModalProps) {
   const rebalanceSections = !signer
   ? [<Typography variant="h4">Error finding wallet</Typography>]
   : [
-    <NetworkSelectionSection goToNextSection={() => setCurrentStep(currentStep + 1)} checkConnectedNetworkId={checkConnectedNetworkId} chainSlug={chainSlug} connectedNetworkId={connectedNetworkId} setBridgedFromNetworkId={setBridgedFromNetworkId} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} networksWithYields={networksWithYields} />,
+    <NetworkSelectionSection goToNextSection={() => setCurrentStep(currentStep + 1)} checkConnectedNetworkId={checkConnectedNetworkId} chainSlug={chainSlug} connectedNetworkId={connectedNetworkId} setBridgedFromNetworkId={setBridgedFromNetworkId} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} sortedChainsWithAPRData={sortedChainsWithAPRData} />,
     <UnstakeWithdrawSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} setERC20PositionBalance={setERC20PositionBalance} setShowRebalancerModal={setShowRebalancerModal} getDeadline={getDeadline} approveToken={approveToken} />,
     <UnwrapSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} erc20PositionBalance={erc20PositionBalance} getHumanErrorMessage={getHumanErrorMessage} />,
     <BridgeSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} chainSlug={chainSlug} tokenSymbol={tokenSymbol} destinationNetworkId={destinationNetworkId} signer={signer} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} erc20PositionBalance={erc20PositionBalance} setBridgeTxHash={setBridgeTxHash} getDeadline={getDeadline} approveToken={approveToken}  />,

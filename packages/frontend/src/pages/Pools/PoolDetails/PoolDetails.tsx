@@ -1,6 +1,5 @@
 import React, { useState, useEffect, ChangeEvent } from 'react'
 import { usePool } from '../PoolsContext'
-import { usePoolStats } from 'src/pages/Pools/usePoolStats'
 import Box from '@material-ui/core/Box'
 import { useParams } from 'react-router'
 import Alert from 'src/components/alert/Alert'
@@ -64,6 +63,7 @@ export function PoolDetails () {
     setError,
     setToken0Amount,
     setToken1Amount,
+    sortedChainsWithAPRData,
     token0Amount,
     token0BalanceBn,
     token0BalanceFormatted,
@@ -138,35 +138,18 @@ export function PoolDetails () {
   const selectedStakingContractAddress = stakingRewards[selectedStaking]?.stakingContractAddress
   const showStakeMessage = !loading && walletConnected && !hasStaked && hasStakeContract && hasBalance
 
-  const { poolStats } = usePoolStats()
   const [networkShowsAPRAlert, setNetworkShowsAPRAlert] = useState(false)
 
   useEffect(() => {
     const showAlert = shouldShowAlert()
     setNetworkShowsAPRAlert(showAlert)
-  }, [poolStats, hasBalance])
+  }, [hasBalance])
 
   // return false if the network has the highest yield, APR is undefined, or the user does not have tokens deposited 
   function shouldShowAlert(): boolean {
     try {
-      const allNetworks = poolStats
-
-      if (!allNetworks) return false
-
-      const chainNames = allNetworks ? Object.keys(allNetworks) : []
-
-      const chains: [string, number, string][] = []
-      for (const chain of chainNames) {
-        if (typeof allNetworks[chain][tokenSymbol] !== "undefined") {
-          chains.push([chain, allNetworks[chain][tokenSymbol].totalApr, allNetworks[chain][tokenSymbol].totalAprFormatted])
-        }
-      }
-
-      // sort chains by APR
-      const chainsSortedByAPR = sortTuplesDescending(chains)
-
       // return false if APR is undefined
-      if (typeof chainsSortedByAPR[0][1] === "undefined") {
+      if (typeof sortedChainsWithAPRData[0][1] === "undefined") {
         // console.log("APR is 0 or undefined")
         return false
       }
@@ -178,7 +161,7 @@ export function PoolDetails () {
       }
 
       // return false highest APR network
-      if (chainsSortedByAPR[0][0] === selectedNetwork?.slug) {
+      if (sortedChainsWithAPRData[0][0] === selectedNetwork?.slug) {
         // console.log("Network has highest APR")
         return false
       }
@@ -196,7 +179,7 @@ export function PoolDetails () {
 
   return (
     <>
-      <RebalancerModal showRebalancerModal={showRebalancerModal} setShowRebalancerModal={setShowRebalancerModal} poolStats={poolStats} />
+      <RebalancerModal showRebalancerModal={showRebalancerModal} setShowRebalancerModal={setShowRebalancerModal} sortedChainsWithAPRData={sortedChainsWithAPRData} />
       <Box maxWidth={"900px"} m={"0 auto"}>
         <Link to={'/pools'} className={styles.backLink}>
           <Box mb={4} display="flex" alignItems="center">

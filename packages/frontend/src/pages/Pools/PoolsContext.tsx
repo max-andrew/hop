@@ -89,6 +89,7 @@ type PoolsContextProps = {
   setToken0Amount: (value: string) => void
   setToken1Amount: (value: string) => void
   setWarning: (warning?: string) => void
+  sortedChainsWithAPRData: [string, number, string][]
   token0Amount: string
   token0Balance: number
   token0BalanceBn: BigNumber
@@ -172,7 +173,7 @@ const PoolsProvider: FC = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const [isWithdrawing, setIsWithdrawing] = useState(false)
   const [isDepositing, setIsDepositing] = useState(false)
-  const { getPoolStats } = usePoolStats()
+  const { poolStats, getPoolStats } = usePoolStats()
   const lpDecimals = 18
   const accountAddress = (queryParams?.address as string) || address?.address
 
@@ -1137,6 +1138,31 @@ const PoolsProvider: FC = ({ children }) => {
   const token0BalanceBn = canonicalBalance ?? BigNumber.from(0)
   const token1BalanceBn = hopBalance ?? BigNumber.from(0)
 
+  const [sortedChainsWithAPRData, setSortedChainsWithAPRData] = useState<[string, number, string][]>([])
+  useEffect(() => { setSortedChainsWithAPRData(getSortedChainsWithAPRData(poolStats)) }, [poolStats])
+
+  function getSortedChainsWithAPRData(poolStats) {
+    console.log("pool stats")
+    console.dir(poolStats)
+    if (typeof poolStats === "undefined") {
+      return []
+    }
+
+    const chainsWithAPRData: [string, number, string][] = []
+    const chainNames = Object.keys(poolStats)
+    for (const chain of chainNames) {
+      if (poolStats && typeof poolStats[chain][tokenSymbol] !== "undefined") {
+        chainsWithAPRData.push([chain, poolStats[chain][tokenSymbol].totalApr, poolStats[chain][tokenSymbol].totalAprFormatted])
+      }
+    }
+
+    return sortTuplesDescending(chainsWithAPRData)
+
+    function sortTuplesDescending(tupleArray: [string, number, string][]): [string, number, string][] {
+      return tupleArray.sort((a, b) => b[1] - a[1])
+    }
+  }
+
   return (
     <PoolsContext.Provider
       value={{
@@ -1197,6 +1223,7 @@ const PoolsProvider: FC = ({ children }) => {
         setToken0Amount,
         setToken1Amount,
         setWarning,
+        sortedChainsWithAPRData,
         token0Amount,
         token0Balance,
         token0BalanceBn,

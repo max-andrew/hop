@@ -12,7 +12,7 @@ type NetworkAPRTupleType = [string, number, string]
 
 interface NetworkSelectionSectionProps {
   checkConnectedNetworkId: (networkId: number) => Promise<boolean>
-  networksWithYields: NetworkAPRTupleType[],
+  sortedChainsWithAPRData: NetworkAPRTupleType[],
   connectedNetworkId: number | undefined,
   chainSlug: string,
   setBridgedFromNetworkId: (bridgedFromNetworkId: number) => void
@@ -23,7 +23,7 @@ interface NetworkSelectionSectionProps {
 
 export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
   const checkConnectedNetworkId = props.checkConnectedNetworkId
-  const networks = props.networksWithYields
+  const networks = props.sortedChainsWithAPRData
   const connectedNetworkId = props.connectedNetworkId
   const chainSlug = props.chainSlug
   const setBridgedFromNetworkId = props.setBridgedFromNetworkId
