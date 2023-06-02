@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ethers } from 'ethers'
+import { ethers, BigNumber } from 'ethers'
 import { networkIdToSlug, networkSlugToId } from 'src/utils/networks'
 import { transferTimes } from 'src/config'
 import Button from 'src/components/buttons/Button'
@@ -25,7 +25,7 @@ export function BridgingStatusSection(props: BridgingStatusSectionProps) {
   const reactAppNetwork = props.reactAppNetwork
   const chainSlug = props.chainSlug
   const provider = props.provider
-  const bridgeTxHash = "0x99b166a641f90604a896e88df71d0bcbaed4bca747b6393835aa32e13497efcd" // props.bridgeTxHash
+  const bridgeTxHash = props.bridgeTxHash
   const setNumberOfBridgedTokensReceived = props.setNumberOfBridgedTokensReceived
   const connectedNetworkId = props.connectedNetworkId
   const bridgedFromNetworkId = props.bridgedFromNetworkId
@@ -54,7 +54,7 @@ export function BridgingStatusSection(props: BridgingStatusSectionProps) {
     let tokensReceived: string
 
     if (typeof bondTxReceipt?.logs !== "undefined") {
-      tokensReceived = parseInt(bondTxReceipt.logs[11].data, 16).toString()
+      tokensReceived = BigNumber.from(bondTxReceipt.logs[11].data).toString()
       console.log("Bridged token balance:", tokensReceived)
       setNumberOfBridgedTokensReceived(tokensReceived)
     } else {

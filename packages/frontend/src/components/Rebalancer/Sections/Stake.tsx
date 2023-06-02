@@ -37,16 +37,16 @@ export function StakeSection(props: StakeSectionProps) {
     const lpTokenContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleLpToken
     const stakingContractAddress = (hopStakingRewardsContracts as any)?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
 
-    const balanceOfAbi = ["function balanceOf(address account) view returns (uint256)"]
+    const balanceOfAbi = ["function balanceOf(address owner) view returns (uint256)"]
     const lpTokenContract = new ethers.Contract(lpTokenContractAddress, balanceOfAbi, signer)
 
     let balance: string = "0"
 
     // get balance of LP token
     try {
-      balance = await lpTokenContract.balanceOf(address?.address)
-      balance = balance.toString()
-      console.log("LP token balance:", balance)
+      console.dir("Signer:", signer)
+      balance = (await lpTokenContract.balanceOf(address?.address)).toString()
+      console.log("LP balance:", balance)
     } catch (error) {
       console.error(error)
       return

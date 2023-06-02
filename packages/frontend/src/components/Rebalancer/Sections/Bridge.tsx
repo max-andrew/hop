@@ -5,6 +5,7 @@ import { networkIdToSlug } from 'src/utils/networks'
 import * as hopMetadata from '@hop-protocol/core/metadata'
 import * as addresses from '@hop-protocol/core/addresses'
 import Address from 'src/models/Address'
+// import { useEstimateTxCost, useTxResult } from 'src/hooks'
 import L2_AmmWrapperAbi from '@hop-protocol/core/abi/generated/L2_AmmWrapper.json'
 import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
@@ -43,6 +44,17 @@ export function BridgeSection(props: BridgeSectionProps) {
 
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")
+
+  // const { estimateSend } = useEstimateTxCost(fromNetwork)
+
+  // const { data: estimatedGasCost } = useTxResult(
+  //   sourceToken,
+  //   fromNetwork,
+  //   toNetwork,
+  //   fromTokenAmountBN,
+  //   estimateSend,
+  //   { deadline }
+  // )
 
   function isNativeToken(chainSlug: string, tokenSymbol: string): boolean {
     return tokenSymbol === (hopMetadata as any)?.[reactAppNetwork]?.chains?.[chainSlug]?.nativeTokenSymbol
@@ -133,35 +145,22 @@ export function BridgeSection(props: BridgeSectionProps) {
         destinationDeadline,
         value
       )
+      
+      const gasLimit = await l2AmmWrapperContract.estimateGas.swapAndSend(
+        destinationNetworkId,
+        recipient,
+        amount,
+        bonderFee,
+        amountOutMin,
+        deadline,
+        destinationAmountOutMin,
+        destinationDeadline,
+        {
+          value: value
+        }
+      )
 
-      const defaultSendGasLimits = {
-        ethereum: tokenSymbol === 'ETH' ? 130000 : 180000,
-        arbitrum: tokenSymbol === 'ETH' ? 500000 : 700000,
-        optimism: tokenSymbol === 'ETH' ? 225000 : 240000,
-        gnosis: tokenSymbol === 'ETH' ? 260000 : 390000,
-        polygon: tokenSymbol === 'ETH' ? 260000 : 260000,
-        nova: tokenSymbol === 'ETH' ? 500000 : 700000,
-        linea: tokenSymbol === 'ETH' ? 500000 : 700000,
-        scrollzk: tokenSymbol === 'ETH' ? 500000 : 700000,
-        base: tokenSymbol === 'ETH' ? 500000 : 700000
-      }
-      const gasLimit = typeof defaultSendGasLimits[chainSlug] !== "undefined" ? defaultSendGasLimits[chainSlug] : defaultSendGasLimits.arbitrum
-
-      /*
-        const gasLimit = await l2AmmWrapperContract.estimateGas.swapAndSend(
-          destinationNetworkId,
-          recipient,
-          amount,
-          bonderFee,
-          amountOutMin,
-          deadline,
-          destinationAmountOutMin,
-          destinationDeadline,
-          {
-            value: value
-          }
-        )
-      */
+      console.log("gasLimit", gasLimit)
 
       const bridgeTx = await l2AmmWrapperContract.swapAndSend(
         destinationNetworkId,
