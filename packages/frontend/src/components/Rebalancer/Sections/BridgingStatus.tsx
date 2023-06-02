@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { ethers, BigNumber } from 'ethers'
-import { networkIdToSlug, networkSlugToId } from 'src/utils/networks'
+import { networkIdToSlug } from 'src/utils/networks'
 import { transferTimes } from 'src/config'
 import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
@@ -8,6 +8,7 @@ import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/St
 
 interface BridgingStatusSectionProps {
   reactAppNetwork: string
+  networkSlugToId: (networkSlug: string) => number
   chainSlug: string
   provider: ethers.providers.Provider | undefined
   bridgeTxHash: string
@@ -23,6 +24,7 @@ interface BridgingStatusSectionProps {
 
 export function BridgingStatusSection(props: BridgingStatusSectionProps) {
   const reactAppNetwork = props.reactAppNetwork
+  const networkSlugToId = props.networkSlugToId
   const chainSlug = props.chainSlug
   const provider = props.provider
   const bridgeTxHash = props.bridgeTxHash

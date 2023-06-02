@@ -1,6 +1,6 @@
 import React, { useState, useEffect, ChangeEvent } from 'react'
 import { findNetworkBySlug } from 'src/utils'
-import { networkIdToSlug, networkSlugToId } from 'src/utils/networks'
+import { networkIdToSlug } from 'src/utils/networks'
 import Network from 'src/models/Network'
 import { SelectProps } from '@material-ui/core/Select'
 import { Grid, Box, Divider, Typography } from '@material-ui/core'
@@ -12,36 +12,27 @@ type NetworkAPRTupleType = [string, number, string]
 
 interface NetworkSelectionSectionProps {
   checkConnectedNetworkId: (networkId: number) => Promise<boolean>
-  sortedChainsWithAPRData: NetworkAPRTupleType[],
-  connectedNetworkId: number | undefined,
-  chainSlug: string,
+  networksMatch: boolean
+  sortedChainsWithAPRData: NetworkAPRTupleType[]
+  connectedNetworkId: number | undefined
+  networkSlugToId: (networkSlug: string) => number
+  chainSlug: string
   setBridgedFromNetworkId: (bridgedFromNetworkId: number) => void
-  destinationNetworkId: number,
+  destinationNetworkId: number
   setDestinationNetwork: (chainSlug: string) => void
   goToNextSection: () => void
 }
 
 export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
   const checkConnectedNetworkId = props.checkConnectedNetworkId
+  const networksMatch = props.networksMatch
   const networks = props.sortedChainsWithAPRData
   const connectedNetworkId = props.connectedNetworkId
+  const networkSlugToId = props.networkSlugToId
   const chainSlug = props.chainSlug
   const setBridgedFromNetworkId = props.setBridgedFromNetworkId
   const destinationNetworkId = props.destinationNetworkId
   const goToNextSection = props.goToNextSection
-
-  const [networksMatch, setNetworksMatch] = useState<boolean>(false)
-
-  // listen for the right chain connection
-  useEffect(() => {
-    if (connectedNetworkId && +connectedNetworkId === +networkSlugToId(chainSlug)) {
-      console.log("Networks", +connectedNetworkId, "and", +networkSlugToId(chainSlug), "match")
-      setNetworksMatch(true)
-      setBridgedFromNetworkId(connectedNetworkId)
-    } else {
-      setNetworksMatch(false)
-    }
-  }, [connectedNetworkId])
 
   // exclude networks with 0 APR
   const positiveAPRNetworks =  networks.reduce((acc: NetworkAPRTupleType[], network) => {

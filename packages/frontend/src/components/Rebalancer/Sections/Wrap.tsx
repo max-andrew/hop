@@ -8,22 +8,30 @@ import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/He
 import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/StatusMessage'
 
 interface WrapSectionProps {
-  goToNextSection: () => void
   reactAppNetwork: string
+  networksMatch: boolean
+  checkConnectedNetworkId: (networkId: number) => Promise<boolean>
+  connectedNetworkId: number | undefined
+  networkSlugToId: (networkSlug: string) => number
   chainSlug: string
   tokenSymbol: string
   numberOfBridgedTokensReceived: string
   signer: ethers.Signer
+  goToNextSection: () => void
   getHumanErrorMessage: (errorMessage: Error) => string
 }
 
 export function WrapSection(props: WrapSectionProps) {
-  const goToNextSection = props.goToNextSection
   const reactAppNetwork = props.reactAppNetwork
+  const networksMatch = props.networksMatch
+  const checkConnectedNetworkId = props.checkConnectedNetworkId
+  const connectedNetworkId = props.connectedNetworkId
+  const networkSlugToId = props.networkSlugToId
   const chainSlug = props.chainSlug
   const tokenSymbol = props.tokenSymbol
   const numberOfBridgedTokensReceived = props.numberOfBridgedTokensReceived
   const signer = props.signer
+  const goToNextSection = props.goToNextSection
   const getHumanErrorMessage = props.getHumanErrorMessage
 
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
@@ -106,11 +114,15 @@ export function WrapSection(props: WrapSectionProps) {
         large
         fullWidth
         onClick={() => {
-          setStatusMessage("Wrapping tokens")
-          setIsTransacting(true)
-          wrapIfNativeToken()
+          if (networksMatch) {
+            setStatusMessage("Wrapping tokens")
+            setIsTransacting(true)
+            wrapIfNativeToken()
+          } else {
+            connectedNetworkId && checkConnectedNetworkId(networkSlugToId(chainSlug))
+          }
         }}>
-        Wrap
+        { networksMatch ? "Wrap" : "Switch Networks" }
       </Button>
       <StatusMessage message={statusMessage} />
     </>

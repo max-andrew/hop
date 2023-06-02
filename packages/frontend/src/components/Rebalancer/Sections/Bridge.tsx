@@ -12,6 +12,10 @@ import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/St
 
 interface BridgeSectionProps {
   reactAppNetwork: string
+  networksMatch: boolean
+  checkConnectedNetworkId: (networkId: number) => Promise<boolean>
+  connectedNetworkId: number | undefined
+  networkSlugToId: (networkSlug: string) => number
   chainSlug: string
   tokenSymbol: string
   signer: Signer
@@ -28,6 +32,10 @@ interface BridgeSectionProps {
 
 export function BridgeSection(props: BridgeSectionProps) {
   const reactAppNetwork = props.reactAppNetwork
+  const networksMatch = props.networksMatch
+  const checkConnectedNetworkId = props.checkConnectedNetworkId
+  const connectedNetworkId = props.connectedNetworkId
+  const networkSlugToId = props.networkSlugToId
   const chainSlug = props.chainSlug
   const tokenSymbol = props.tokenSymbol
   const signer = props.signer
@@ -201,11 +209,15 @@ export function BridgeSection(props: BridgeSectionProps) {
         large
         fullWidth
         onClick={() => {
-          setStatusMessage("Bridging tokens")
-          setIsTransacting(true)
-          swapAndSend()
+          if (networksMatch) {
+            setStatusMessage("Bridging tokens")
+            setIsTransacting(true)
+            swapAndSend()
+          } else {
+            connectedNetworkId && checkConnectedNetworkId(networkSlugToId(chainSlug))
+          }
         }}>
-        Bridge
+        { networksMatch ? "Bridge" : "Switch Networks" }
       </Button>
       <StatusMessage message={statusMessage} />
     </>

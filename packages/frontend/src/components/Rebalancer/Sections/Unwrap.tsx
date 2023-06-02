@@ -8,6 +8,10 @@ import { StatusMessage } from 'src/components/Rebalancer/Sections/Subsections/St
 
 interface UnwrapSectionProps {
   reactAppNetwork: string
+  networksMatch: boolean
+  checkConnectedNetworkId: (networkId: number) => Promise<boolean>
+  connectedNetworkId: number | undefined
+  networkSlugToId: (networkSlug: string) => number
   chainSlug: string
   tokenSymbol: string
   signer: Signer
@@ -18,6 +22,10 @@ interface UnwrapSectionProps {
 
 export function UnwrapSection(props: UnwrapSectionProps) {
   const reactAppNetwork = props.reactAppNetwork
+  const networksMatch = props.networksMatch
+  const checkConnectedNetworkId = props.checkConnectedNetworkId
+  const connectedNetworkId = props.connectedNetworkId
+  const networkSlugToId = props.networkSlugToId
   const chainSlug = props.chainSlug
   const tokenSymbol = props.tokenSymbol
   const signer = props.signer
@@ -105,11 +113,15 @@ export function UnwrapSection(props: UnwrapSectionProps) {
         large
         fullWidth
         onClick={() => {
-          setStatusMessage("Unwrapping tokens")
-          setIsTransacting(true)
-          unwrapIfNativeToken()
+          if (networksMatch) {
+            setStatusMessage("Unwrapping tokens")
+            setIsTransacting(true)
+            unwrapIfNativeToken()
+          } else {
+            connectedNetworkId && checkConnectedNetworkId(networkSlugToId(chainSlug))
+          }
         }}>
-        Unwrap
+        { networksMatch ? "Unwrap" : "Switch Networks" }
       </Button>
       <StatusMessage message={statusMessage} />
     </>
