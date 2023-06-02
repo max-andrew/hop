@@ -29,23 +29,29 @@ export function UnwrapSection(props: UnwrapSectionProps) {
   const [statusMessage, setStatusMessage] = useState<string>("")
 
   function isNativeToken(chainSlug: string, tokenSymbol: string): boolean {
-    return tokenSymbol === (hopMetadata as any)?.[reactAppNetwork]?.chains?.[chainSlug]?.nativeTokenSymbol
+    let adjustedTokenSymbol = tokenSymbol
+
+    if (tokenSymbol === "DAI" && chainSlug === "gnosis") {
+      adjustedTokenSymbol = "XDAI"
+    }
+
+    return adjustedTokenSymbol === (hopMetadata as any)?.[reactAppNetwork]?.chains?.[chainSlug]?.nativeTokenSymbol
   }
 
   async function unwrapETH(amountToUnwrap: string) {
     const wETHContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
     const wethAbi = ["function withdraw(uint256 _amount) external returns (bool)"]
     const wethContract = new ethers.Contract(wETHContractAddress, wethAbi, signer)
-    const gasLimit = await wethContract.estimateGas.withdraw(100)
+    const gasLimit = await wethContract.estimateGas.withdraw(amountToUnwrap)
 
     return await wethContract.withdraw(amountToUnwrap, { gasLimit: gasLimit })
   }
 
   async function unwrapDAI(amountToUnwrap: string) {
     const wDAIContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-    const wDAIAbi = ["function withdraw(uint256 wad) public"]
+    const wDAIAbi = ["function withdraw(uint256 _amount) external returns (bool)"]
     const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
-    const gasLimit = await wDAIContract.estimateGas.withdraw(100)
+    const gasLimit = await wDAIContract.estimateGas.withdraw(amountToUnwrap)
 
     return wDAIContract.withdraw(amountToUnwrap, { gasLimit: gasLimit })
   }

@@ -30,7 +30,13 @@ export function WrapSection(props: WrapSectionProps) {
   const [statusMessage, setStatusMessage] = useState<string>("")
 
   function isNativeToken(chainSlug: string, tokenSymbol: string): boolean {
-    return tokenSymbol === (hopMetadata as any)?.[reactAppNetwork]?.chains?.[chainSlug]?.nativeTokenSymbol
+    let adjustedTokenSymbol = tokenSymbol
+
+    if (tokenSymbol === "DAI" && chainSlug === "gnosis") {
+      adjustedTokenSymbol = "XDAI"
+    }
+
+    return adjustedTokenSymbol === (hopMetadata as any)?.[reactAppNetwork]?.chains?.[chainSlug]?.nativeTokenSymbol
   }
 
   async function wrapETH(amountToWrap: string) {

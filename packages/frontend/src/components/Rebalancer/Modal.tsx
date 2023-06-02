@@ -66,7 +66,7 @@ export function RebalancerModal(props: RebalancerModalProps) {
     connectedNetworkId && setBridgedFromNetworkId(connectedNetworkId)
   }, [])
 
-  const [currentStep, setCurrentStep] = useState<number>(7)
+  const [currentStep, setCurrentStep] = useState<number>(0)
 
 
   /* HELPER FUNCTIONS */

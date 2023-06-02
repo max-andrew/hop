@@ -5,7 +5,6 @@ import { networkIdToSlug } from 'src/utils/networks'
 import * as hopMetadata from '@hop-protocol/core/metadata'
 import * as addresses from '@hop-protocol/core/addresses'
 import Address from 'src/models/Address'
-// import { useEstimateTxCost, useTxResult } from 'src/hooks'
 import L2_AmmWrapperAbi from '@hop-protocol/core/abi/generated/L2_AmmWrapper.json'
 import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
@@ -45,19 +44,14 @@ export function BridgeSection(props: BridgeSectionProps) {
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")
 
-  // const { estimateSend } = useEstimateTxCost(fromNetwork)
-
-  // const { data: estimatedGasCost } = useTxResult(
-  //   sourceToken,
-  //   fromNetwork,
-  //   toNetwork,
-  //   fromTokenAmountBN,
-  //   estimateSend,
-  //   { deadline }
-  // )
-
   function isNativeToken(chainSlug: string, tokenSymbol: string): boolean {
-    return tokenSymbol === (hopMetadata as any)?.[reactAppNetwork]?.chains?.[chainSlug]?.nativeTokenSymbol
+    let adjustedTokenSymbol = tokenSymbol
+
+    if (tokenSymbol === "DAI" && chainSlug === "gnosis") {
+      adjustedTokenSymbol = "XDAI"
+    }
+
+    return adjustedTokenSymbol === (hopMetadata as any)?.[reactAppNetwork]?.chains?.[chainSlug]?.nativeTokenSymbol
   }
 
   // bridge canonical tokens
@@ -145,7 +139,7 @@ export function BridgeSection(props: BridgeSectionProps) {
         destinationDeadline,
         value
       )
-      
+
       const gasLimit = await l2AmmWrapperContract.estimateGas.swapAndSend(
         destinationNetworkId,
         recipient,
