@@ -77,7 +77,7 @@ export function RebalancerModal(props: RebalancerModalProps) {
     } else {
       setNetworksMatch(false)
     }
-  }, [connectedNetworkId])
+  }, [connectedNetworkId, chainSlug])
 
   const [currentStep, setCurrentStep] = useState<number>(0)
 
