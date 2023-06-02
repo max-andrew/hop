@@ -77,8 +77,8 @@ export function DepositSection(props: DepositSectionProps) {
 
     try {
       console.log("numberOfBridgedTokensReceived", numberOfBridgedTokensReceived)
-      const gasLimit = await swapContract.estimateGas.addLiquidity(["9714612474161344754", 0], minToMint, deadline)
-      const depositTx = await swapContract.addLiquidity(["9714612474161344754", 0],  minToMint, deadline, { gasLimit: gasLimit })
+      const gasLimit = await swapContract.estimateGas.addLiquidity([numberOfBridgedTokensReceived, 0], minToMint, deadline)
+      const depositTx = await swapContract.addLiquidity([numberOfBridgedTokensReceived, 0],  minToMint, deadline, { gasLimit: gasLimit })
       
       await depositTx.wait()
         .then((tokensReceived: string) => {

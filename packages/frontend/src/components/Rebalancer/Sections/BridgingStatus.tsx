@@ -78,7 +78,7 @@ export function BridgingStatusSection(props: BridgingStatusSectionProps) {
     }
 
     let waitInMinutes: number = 10
-    if (connectedNetworkId && bridgedFromNetworkId !== 0) {
+    if (connectedNetworkId && bridgedFromNetworkId !== 0 && typeof (transferTimes as any)?.[networkIdToSlug(bridgedFromNetworkId)][chainSlug] !== "undefined") {
       waitInMinutes = (transferTimes as any)?.[networkIdToSlug(bridgedFromNetworkId)][chainSlug]
     }
 
