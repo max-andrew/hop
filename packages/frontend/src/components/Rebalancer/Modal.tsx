@@ -79,7 +79,7 @@ export function RebalancerModal(props: RebalancerModalProps) {
     }
   }, [connectedNetworkId])
 
-  const [currentStep, setCurrentStep] = useState<number>(5)
+  const [currentStep, setCurrentStep] = useState<number>(0)
 
 
   /* HELPER FUNCTIONS */
