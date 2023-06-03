@@ -56,7 +56,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
       <SectionHeader title="Select destination" subtitle="Choose the network to transfer your position to" />
       <Grid container alignItems="center">
         <Grid item xs>
-          <Box display="flex" alignItems="center" justifyContent="center">
+          <Box display="flex" alignItems="center" justifyContent="center" mr={1}>
             <RaisedNetworkSelector 
               selectedNetwork={findNetworkBySlug(networkIdToSlug(destinationNetworkId))}
               onSelect={(e: ChangeEvent<SelectProps>) => props.setDestinationNetwork(e.target.value as string)}
