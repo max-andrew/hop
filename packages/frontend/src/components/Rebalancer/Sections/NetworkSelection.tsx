@@ -2,6 +2,8 @@ import React, { useState, useEffect, ChangeEvent } from 'react'
 import { findNetworkBySlug } from 'src/utils'
 import { networkIdToSlug } from 'src/utils/networks'
 import Network from 'src/models/Network'
+import useAvailableLiquidity from 'src/pages/Send/useAvailableLiquidity'
+import { HopBridge } from '@hop-protocol/sdk'
 import { SelectProps } from '@material-ui/core/Select'
 import { Grid, Box, Divider, Typography } from '@material-ui/core'
 import Button from 'src/components/buttons/Button'
@@ -20,6 +22,7 @@ interface NetworkSelectionSectionProps {
   setBridgedFromNetworkId: (bridgedFromNetworkId: number) => void
   destinationNetworkId: number
   setDestinationNetwork: (chainSlug: string) => void
+  selectedBridge: HopBridge
   goToNextSection: () => void
 }
 
@@ -32,8 +35,18 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
   const chainSlug = props.chainSlug
   const setBridgedFromNetworkId = props.setBridgedFromNetworkId
   const destinationNetworkId = props.destinationNetworkId
+  const selectedBridge = props.selectedBridge
   const goToNextSection = props.goToNextSection
 
+  // get a list of networks without available liquidity
+  const networkSlugsWithoutLiquidity: string[] = [""]
+  networks.forEach(network => {
+    const { availableLiquidity } = useAvailableLiquidity(selectedBridge, chainSlug, network[0])
+    if (availableLiquidity?.isZero()) {
+      networkSlugsWithoutLiquidity.push(network[0])
+    }
+  })
+  
   // exclude networks with 0 APR
   const positiveAPRNetworks =  networks.reduce((acc: NetworkAPRTupleType[], network) => {
     if (network && network[1] > 0) {
@@ -42,14 +55,22 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
     return acc
   }, [])
 
-  // exclude the source network
-  const potentialDestinationNetworkObjects = positiveAPRNetworks.reduce((acc: Network[], network) => {
-    const foundNetwork = findNetworkBySlug(network[0])
-    if (foundNetwork && network[0] !== chainSlug) {
-      acc.push(foundNetwork)
+  // exclude the source network and those without liquidity from the list of networks with positive APR
+  const selectableNetworks = positiveAPRNetworks.reduce((acc: NetworkAPRTupleType[], network) => {
+    if (network && network[0] !== chainSlug && !networkSlugsWithoutLiquidity.includes(network[0])) {
+      acc.push(network)
     }
     return acc
   }, [])
+
+  // convert the selectable network list to Network objects
+  const selectableNetworkObjects: Network[] = []
+  selectableNetworks.forEach(network => {
+    const foundNetwork = findNetworkBySlug(network[0])
+    if (typeof foundNetwork !== "undefined") {
+      selectableNetworkObjects.push(foundNetwork)
+    }
+  })
 
   return (
     <>
@@ -60,7 +81,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
             <RaisedNetworkSelector 
               selectedNetwork={findNetworkBySlug(networkIdToSlug(destinationNetworkId))}
               onSelect={(e: ChangeEvent<SelectProps>) => props.setDestinationNetwork(e.target.value as string)}
-              availableNetworks={potentialDestinationNetworkObjects}
+              availableNetworks={selectableNetworkObjects}
               />
           </Box>
         </Grid>
@@ -71,7 +92,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
               {positiveAPRNetworks.map((tuple: NetworkAPRTupleType, index: number) => (
                 <Box key={index} my={2}>
                   <Typography variant="body1" color="textSecondary" align="right">{tuple[0]}</Typography>
-                  <Typography variant="h3" align="right">{tuple[2]}</Typography>
+                  <Typography variant="h3" color={networkSlugsWithoutLiquidity.includes(tuple[0]) ? "textSecondary" : undefined} align="right">{tuple[2]}</Typography>
                 </Box>
               ))}
             </Box>

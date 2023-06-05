@@ -109,6 +109,7 @@ export function DepositSection(props: DepositSectionProps) {
         fullWidth
         onClick={() => {
           if (networksMatch) {
+            setStatusMessage("Depositing tokens")
             setIsTransacting(true)
             addLiquidity()
           } else {

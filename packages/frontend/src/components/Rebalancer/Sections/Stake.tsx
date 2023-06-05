@@ -22,6 +22,7 @@ interface StakeSectionProps {
   approveToken: (tokenAddress: string, spenderAddress: string, amount: string) => Promise<TransactionResponse | undefined>
   getHumanErrorMessage: (error: Error) => string
   close: () => void
+  goToNextSection: () => void
 }
 
 export function StakeSection(props: StakeSectionProps) {
@@ -36,6 +37,7 @@ export function StakeSection(props: StakeSectionProps) {
   const address = props.address
   const getHumanErrorMessage = props.getHumanErrorMessage
   const approveToken = props.approveToken
+  const goToNextSection = props.goToNextSection
   const close = props.close
 
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
@@ -95,6 +97,7 @@ export function StakeSection(props: StakeSectionProps) {
           setStatusMessage("Approved successfully")
           setIsTransacting(false)
           close()
+          goToNextSection()
         })
         .catch((error: Error) => {
           console.error(error)
