@@ -2,8 +2,10 @@ import React, { useState } from 'react'
 import { ethers, BigNumber, Signer, Transaction, Contract } from 'ethers'
 import { TransactionResponse } from '@ethersproject/abstract-provider'
 import { networkIdToSlug } from 'src/utils/networks'
+import useAvailableLiquidity from 'src/pages/Send/useAvailableLiquidity'
 import * as hopMetadata from '@hop-protocol/core/metadata'
 import * as addresses from '@hop-protocol/core/addresses'
+import { HopBridge } from '@hop-protocol/sdk'
 import Address from 'src/models/Address'
 import L2_AmmWrapperAbi from '@hop-protocol/core/abi/generated/L2_AmmWrapper.json'
 import Button from 'src/components/buttons/Button'
@@ -27,6 +29,7 @@ interface BridgeSectionProps {
   destinationNetworkId: number
   getHumanErrorMessage: (error: Error) => string
   setBridgeTxHash: (bridgeTxHash: string) => void
+  selectedBridge: HopBridge
   goToNextSection: () => void
 }
 
@@ -47,10 +50,14 @@ export function BridgeSection(props: BridgeSectionProps) {
   const destinationNetworkId = props.destinationNetworkId
   const getHumanErrorMessage = props.getHumanErrorMessage
   const setBridgeTxHash = props.setBridgeTxHash
+  const selectedBridge = props.selectedBridge
   const goToNextSection = props.goToNextSection
 
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")
+
+  // get the bridge liquidity available
+  const { availableLiquidity } = useAvailableLiquidity(selectedBridge, chainSlug, networkIdToSlug(destinationNetworkId))
 
   function isNativeToken(chainSlug: string, tokenSymbol: string): boolean {
     let adjustedTokenSymbol = tokenSymbol
@@ -68,7 +75,8 @@ export function BridgeSection(props: BridgeSectionProps) {
     const l2AmmWrapperContract = new ethers.Contract(l2AmmWrapperContractAddress, L2_AmmWrapperAbi, signer)
     const canonicalTokenContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
 
-    const amount: string = erc20PositionBalance
+    // use whatever amount is less between the position balance and available liquidity
+    const amount: string = (availableLiquidity && erc20PositionBalance > availableLiquidity.toString()) ? availableLiquidity.toString() : erc20PositionBalance
 
     // if not native token, approve token spending
     if (!isNativeToken(chainSlug, tokenSymbol)) {
