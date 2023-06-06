@@ -35,6 +35,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
   const chainSlug = props.chainSlug
   const setBridgedFromNetworkId = props.setBridgedFromNetworkId
   const destinationNetworkId = props.destinationNetworkId
+  const setDestinationNetwork = props.setDestinationNetwork
   const selectedBridge = props.selectedBridge
   const goToNextSection = props.goToNextSection
 
@@ -48,7 +49,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
   })
   
   // exclude networks with 0 APR
-  const positiveAPRNetworks =  networks.reduce((acc: NetworkAPRTupleType[], network) => {
+  const positiveAPRNetworks = networks.reduce((acc: NetworkAPRTupleType[], network) => {
     if (network && network[1] > 0) {
       acc.push(network)
     }
@@ -62,6 +63,13 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
     }
     return acc
   }, [])
+
+  // set default to highest APR selectable network
+  useEffect(() => {
+    if (typeof selectableNetworks?.[0]?.[0] !== "undefined") {
+      setDestinationNetwork(selectableNetworks[0][0])
+    }
+  }, [selectableNetworks])
 
   // convert the selectable network list to Network objects
   const selectableNetworkObjects: Network[] = []
@@ -81,7 +89,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
             { selectableNetworkObjects.length > 0
               ? <RaisedNetworkSelector 
                 selectedNetwork={findNetworkBySlug(networkIdToSlug(destinationNetworkId))}
-                onSelect={(e: ChangeEvent<SelectProps>) => props.setDestinationNetwork(e.target.value as string)}
+                onSelect={(e: ChangeEvent<SelectProps>) => setDestinationNetwork(e.target.value as string)}
                 availableNetworks={selectableNetworkObjects}
                 />
               : <Typography variant="body1" color="textSecondary" align="right">No available networks</Typography>

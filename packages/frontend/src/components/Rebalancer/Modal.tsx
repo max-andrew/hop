@@ -41,21 +41,6 @@ export function RebalancerModal(props: RebalancerModalProps) {
   const chainSlug: string = selectedNetwork?.slug ?? ""
 
   const [destinationNetworkId, setDestinationNetworkId] = useState<number>(chainSlug === "optimism" ? networkSlugToId("arbitrum") : networkSlugToId("optimism"))
-  // set default to highest APR network
-  useEffect(() => {
-    if (typeof sortedChainsWithAPRData !== "undefined" && currentStep === 0) {
-      // exclude the source network
-      const potentialDestinationNetworkIds: number[] = sortedChainsWithAPRData.reduce((acc: number[], network) => {
-        if (network[0] !== chainSlug) {
-          acc.push(networkSlugToId(network[0]))
-        }
-        return acc
-      }, [])
-
-      setDestinationNetworkId(potentialDestinationNetworkIds[0])
-    }
-  }, [sortedChainsWithAPRData])
-
   const [erc20PositionBalance, setERC20PositionBalance] = useState<string>("")
   const [bridgeTxHash, setBridgeTxHash] = useState<string>("")
   const [numberOfBridgedTokensReceived, setNumberOfBridgedTokensReceived] = useState<string>("")
