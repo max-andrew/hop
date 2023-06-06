@@ -55,9 +55,9 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
     return acc
   }, [])
 
-  // exclude the source network and those without liquidity from the list of networks with positive APR
+  // exclude mainnet, the source network, and those without liquidity from the list of networks with positive APR
   const selectableNetworks = positiveAPRNetworks.reduce((acc: NetworkAPRTupleType[], network) => {
-    if (network && network[0] !== chainSlug && !networkSlugsWithoutLiquidity.includes(network[0])) {
+    if (network && network[0] !== "ethereum" && network[0] !== chainSlug && !networkSlugsWithoutLiquidity.includes(network[0])) {
       acc.push(network)
     }
     return acc
