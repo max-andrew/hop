@@ -39,7 +39,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
   const goToNextSection = props.goToNextSection
 
   // get a list of networks without available liquidity
-  const networkSlugsWithoutLiquidity: string[] = [""]
+  const networkSlugsWithoutLiquidity: string[] = []
   networks.forEach(network => {
     const { availableLiquidity } = useAvailableLiquidity(selectedBridge, chainSlug, network[0])
     if (availableLiquidity?.isZero()) {
@@ -78,11 +78,14 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
       <Grid container alignItems="center">
         <Grid item xs>
           <Box display="flex" alignItems="center" justifyContent="center" mr={1}>
-            <RaisedNetworkSelector 
-              selectedNetwork={findNetworkBySlug(networkIdToSlug(destinationNetworkId))}
-              onSelect={(e: ChangeEvent<SelectProps>) => props.setDestinationNetwork(e.target.value as string)}
-              availableNetworks={selectableNetworkObjects}
-              />
+            { selectableNetworkObjects.length > 0
+              ? <RaisedNetworkSelector 
+                selectedNetwork={findNetworkBySlug(networkIdToSlug(destinationNetworkId))}
+                onSelect={(e: ChangeEvent<SelectProps>) => props.setDestinationNetwork(e.target.value as string)}
+                availableNetworks={selectableNetworkObjects}
+                />
+              : <Typography variant="body1" color="textSecondary" align="right">No available networks</Typography>
+            }
           </Box>
         </Grid>
         <Divider orientation="vertical" flexItem />
@@ -92,7 +95,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
               {positiveAPRNetworks.map((tuple: NetworkAPRTupleType, index: number) => (
                 <Box key={index} my={2}>
                   <Typography variant="body1" color="textSecondary" align="right">{tuple[0]}</Typography>
-                  <Typography variant="h3" color={networkSlugsWithoutLiquidity.includes(tuple[0]) ? "textSecondary" : undefined} align="right">{tuple[2]}</Typography>
+                  <Typography variant="h3" color={networkSlugsWithoutLiquidity.includes(tuple[0]) || chainSlug === tuple[0] ? "textSecondary" : undefined} align="right">{tuple[2]}</Typography>
                 </Box>
               ))}
             </Box>
