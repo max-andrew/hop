@@ -27,21 +27,23 @@ interface NetworkSelectionSectionProps {
 }
 
 export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
-  const checkConnectedNetworkId = props.checkConnectedNetworkId
-  const networksMatch = props.networksMatch
-  const networks = props.sortedChainsWithAPRData
-  const connectedNetworkId = props.connectedNetworkId
-  const networkSlugToId = props.networkSlugToId
-  const chainSlug = props.chainSlug
-  const setBridgedFromNetworkId = props.setBridgedFromNetworkId
-  const destinationNetworkId = props.destinationNetworkId
-  const setDestinationNetwork = props.setDestinationNetwork
-  const selectedBridge = props.selectedBridge
-  const goToNextSection = props.goToNextSection
+  const { 
+    checkConnectedNetworkId, 
+    networksMatch,
+    sortedChainsWithAPRData,
+    connectedNetworkId,
+    networkSlugToId,
+    chainSlug,
+    setBridgedFromNetworkId,
+    destinationNetworkId,
+    setDestinationNetwork,
+    selectedBridge,
+    goToNextSection,
+  } = props
 
   // get a list of networks without available liquidity
   const networkSlugsWithoutLiquidity: string[] = []
-  networks.forEach(network => {
+  sortedChainsWithAPRData.forEach(network => {
     const { availableLiquidity } = useAvailableLiquidity(selectedBridge, chainSlug, network[0])
     if (availableLiquidity?.isZero()) {
       networkSlugsWithoutLiquidity.push(network[0])
@@ -49,7 +51,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
   })
   
   // exclude networks with 0 APR
-  const positiveAPRNetworks = networks.reduce((acc: NetworkAPRTupleType[], network) => {
+  const positiveAPRNetworks = sortedChainsWithAPRData.reduce((acc: NetworkAPRTupleType[], network) => {
     if (network && network[1] > 0) {
       acc.push(network)
     }

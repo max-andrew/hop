@@ -34,24 +34,26 @@ interface BridgeSectionProps {
 }
 
 export function BridgeSection(props: BridgeSectionProps) {
-  const reactAppNetwork = props.reactAppNetwork
-  const networksMatch = props.networksMatch
-  const checkConnectedNetworkId = props.checkConnectedNetworkId
-  const connectedNetworkId = props.connectedNetworkId
-  const networkSlugToId = props.networkSlugToId
-  const chainSlug = props.chainSlug
-  const tokenSymbol = props.tokenSymbol
-  const signer = props.signer
-  const getTokensAreStaked = props.getTokensAreStaked
-  const address = props.address
-  const erc20PositionBalance = props.erc20PositionBalance
-  const approveToken = props.approveToken
-  const getDeadline = props.getDeadline
-  const destinationNetworkId = props.destinationNetworkId
-  const getHumanErrorMessage = props.getHumanErrorMessage
-  const setBridgeTxHash = props.setBridgeTxHash
-  const selectedBridge = props.selectedBridge
-  const goToNextSection = props.goToNextSection
+  const {
+    reactAppNetwork,
+    networksMatch,
+    checkConnectedNetworkId,
+    connectedNetworkId,
+    networkSlugToId,
+    chainSlug,
+    tokenSymbol,
+    signer,
+    getTokensAreStaked,
+    address,
+    erc20PositionBalance,
+    approveToken,
+    getDeadline,
+    destinationNetworkId,
+    getHumanErrorMessage,
+    setBridgeTxHash,
+    selectedBridge,
+    goToNextSection
+  } = props
 
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")

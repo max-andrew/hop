@@ -27,9 +27,7 @@ interface RebalancerModalProps {
 }
 
 export function RebalancerModal(props: RebalancerModalProps) {
-  const showRebalancerModal = props.showRebalancerModal
-  const setShowRebalancerModal = props.setShowRebalancerModal
-  const sortedChainsWithAPRData = props.sortedChainsWithAPRData
+  const { showRebalancerModal, setShowRebalancerModal, sortedChainsWithAPRData } = props
 
   const { address, provider, onboard, connectedNetworkId, checkConnectedNetworkId } = useWeb3Context()
   const signer = provider?.getSigner()
@@ -42,6 +40,7 @@ export function RebalancerModal(props: RebalancerModalProps) {
 
   const [destinationNetworkId, setDestinationNetworkId] = useState<number>(chainSlug === "optimism" ? networkSlugToId("arbitrum") : networkSlugToId("optimism"))
   const [erc20PositionBalance, setERC20PositionBalance] = useState<string>("")
+  const [hTokenPositionBalance, setHTokenPositionBalance] = useState<string>("")
   const [bridgeTxHash, setBridgeTxHash] = useState<string>("")
   const [numberOfBridgedTokensReceived, setNumberOfBridgedTokensReceived] = useState<string>("")
   
@@ -147,7 +146,7 @@ export function RebalancerModal(props: RebalancerModalProps) {
   ? [<Typography variant="h4">Error finding wallet</Typography>]
   : [
     <NetworkSelectionSection goToNextSection={() => setCurrentStep(currentStep + 1)} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} setBridgedFromNetworkId={setBridgedFromNetworkId} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} sortedChainsWithAPRData={sortedChainsWithAPRData} selectedBridge={selectedBridge} />,
-    <UnstakeWithdrawSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} setERC20PositionBalance={setERC20PositionBalance} setShowRebalancerModal={setShowRebalancerModal} getDeadline={getDeadline} approveToken={approveToken} />,
+    <UnstakeWithdrawSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} setERC20PositionBalance={setERC20PositionBalance} setHTokenPositionBalance={setHTokenPositionBalance} setShowRebalancerModal={setShowRebalancerModal} getDeadline={getDeadline} approveToken={approveToken} />,
     <UnwrapSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} erc20PositionBalance={erc20PositionBalance} getHumanErrorMessage={getHumanErrorMessage} />,
     <BridgeSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} tokenSymbol={tokenSymbol} destinationNetworkId={destinationNetworkId} signer={signer} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} erc20PositionBalance={erc20PositionBalance} setBridgeTxHash={setBridgeTxHash} getDeadline={getDeadline} approveToken={approveToken} selectedBridge={selectedBridge} />,
     <BridgingStatusSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} provider={provider} bridgedFromNetworkId={bridgedFromNetworkId} destinationNetworkId={destinationNetworkId} changeNetwork={changeNetwork} bridgeTxHash={bridgeTxHash} setNumberOfBridgedTokensReceived={setNumberOfBridgedTokensReceived} getHumanErrorMessage={getHumanErrorMessage} getDeadline={getDeadline} />,

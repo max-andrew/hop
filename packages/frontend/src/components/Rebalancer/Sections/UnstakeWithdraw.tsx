@@ -28,28 +28,32 @@ interface UnstakeWithdrawSectionProps {
   approveToken: (tokenAddress: string, spenderAddress: string, amount: string) => Promise<TransactionResponse | undefined>
   getDeadline: (confirmTimeMinutes: number) => number
   setERC20PositionBalance: (erc20PositionBalance: string) => void
+  setHTokenPositionBalance: (hTokenPositionBalance: string) => void
   setShowRebalancerModal: (showRebalancerModal: boolean) => void
   getHumanErrorMessage: (error: Error) => string
   goToNextSection: () => void
 }
 
 export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
-  const reactAppNetwork = props.reactAppNetwork
-  const networksMatch = props.networksMatch
-  const checkConnectedNetworkId = props.checkConnectedNetworkId
-  const connectedNetworkId = props.connectedNetworkId
-  const networkSlugToId = props.networkSlugToId
-  const chainSlug = props.chainSlug
-  const tokenSymbol = props.tokenSymbol
-  const signer = props.signer
-  const getTokensAreStaked = props.getTokensAreStaked
-  const address = props.address
-  const approveToken = props.approveToken
-  const getDeadline = props.getDeadline
-  const setERC20PositionBalance = props.setERC20PositionBalance
-  const setShowRebalancerModal = props.setShowRebalancerModal
-  const getHumanErrorMessage = props.getHumanErrorMessage
-  const goToNextSection = props.goToNextSection
+  const { 
+    reactAppNetwork,
+    networksMatch,
+    checkConnectedNetworkId,
+    connectedNetworkId,
+    networkSlugToId,
+    chainSlug,
+    tokenSymbol,
+    signer,
+    getTokensAreStaked,
+    address,
+    approveToken,
+    getDeadline,
+    setERC20PositionBalance,
+    setHTokenPositionBalance,
+    setShowRebalancerModal,
+    getHumanErrorMessage,
+    goToNextSection
+  } = props
 
   const stakingContractAddress = (hopStakingRewardsContracts as any)?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
   const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
@@ -149,7 +153,7 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
           .then(() => {
             console.log("Approved successfully")
             setStatusMessage("Approved LP token spending")
-            removeLiquidityOneToken(balance)
+            removeLiquidity(balance)
           })
           .catch(error => {
             console.error(error)
@@ -158,7 +162,7 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
           })
       } else {
         setStatusMessage("Could not approve tokens")
-        removeLiquidityOneToken(balance)
+        removeLiquidity(balance)
       }
     } catch (error) {
       console.error(error)
@@ -166,7 +170,7 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
       setIsTransacting(false)
     }
 
-    async function removeLiquidityOneToken(amount: string) {
+    async function removeLiquidity(amount: string, withdrawToOne: boolean = true) {
       const swapContract = new ethers.Contract(saddleSwapContractAddress, saddleSwapAbi, signer)
 
       // adjust for potential difference in decimals between LP tokens and collateral
@@ -181,26 +185,46 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
 
       try {
         setStatusMessage("Withdrawing tokens")
-        const gasLimit = await swapContract.estimateGas.removeLiquidityOneToken(amount, 0, minAmount, deadline)
-        const removeLiquidityTx = await swapContract.removeLiquidityOneToken(amount, 0, minAmount, deadline, { gasLimit: gasLimit })
+
+        let gasLimit
+        let removeLiquidityTx
+
+        if (withdrawToOne) {
+          gasLimit = await swapContract.estimateGas.removeLiquidityOneToken(amount, 0, minAmount, deadline)
+          removeLiquidityTx = await swapContract.removeLiquidityOneToken(amount, 0, minAmount, deadline, { gasLimit: gasLimit })
+        } else {
+          gasLimit = await swapContract.estimateGas.removeLiquidity(amount, [0, 0], deadline)
+          removeLiquidityTx = await swapContract.removeLiquidity(amount, [0, 0], deadline, { gasLimit: gasLimit })
+        }
         
         await removeLiquidityTx.wait()
           .then(async (removeLiquidityTxReceipt: TransactionReceipt) => {
             if (typeof removeLiquidityTxReceipt !== "undefined") {
-              let numberOfTokensWithdrawn: string = removeLiquidityTxReceipt.logs[2].data.toString()
-              console.log("numberOfTokensWithdrawn", numberOfTokensWithdrawn)
-              numberOfTokensWithdrawn = BigNumber.from(numberOfTokensWithdrawn).toString()
-              console.log("numberOfTokensWithdrawn", numberOfTokensWithdrawn)
+              let numberOfERC20TokensWithdrawn: string = "0"
+              let numberOfHTokensWithdrawn: string = "0"
 
-              console.log("Successfully withdrew", numberOfTokensWithdrawn, "tokens")
+              if (withdrawToOne) {
+                numberOfERC20TokensWithdrawn = removeLiquidityTxReceipt.logs[2].data.toString()
+              } else {
+                numberOfERC20TokensWithdrawn = removeLiquidityTxReceipt.logs[0].data.toString()
+                numberOfHTokensWithdrawn = removeLiquidityTxReceipt.logs[1].data.toString()
+              }
+
+              console.log("Successfully withdrew", numberOfERC20TokensWithdrawn, "canonical tokens")
+              console.log("Successfully withdrew", numberOfHTokensWithdrawn, "hTokens")
+
               setStatusMessage("Successfully withdrew tokens")
               setIsTransacting(false)
-              setERC20PositionBalance(numberOfTokensWithdrawn)
+              
+              setERC20PositionBalance(numberOfERC20TokensWithdrawn)
+              setHTokenPositionBalance(numberOfHTokensWithdrawn)
+
               goToNextSection()
             } else {
               setIsTransacting(false)
               setStatusMessage("Error: no tokens to withdraw")
               setERC20PositionBalance("0")
+              setHTokenPositionBalance("0")
             }
           })
           .catch((error: Error) => {
