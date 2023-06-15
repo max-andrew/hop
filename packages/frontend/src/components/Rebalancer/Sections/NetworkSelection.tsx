@@ -71,7 +71,7 @@ export function NetworkSelectionSection(props: NetworkSelectionSectionProps) {
     if (typeof selectableNetworks?.[0]?.[0] !== "undefined") {
       setDestinationNetwork(selectableNetworks[0][0])
     }
-  }, [selectableNetworks])
+  }, [])
 
   // convert the selectable network list to Network objects
   const selectableNetworkObjects: Network[] = []
