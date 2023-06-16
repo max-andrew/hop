@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { ethers, Signer } from 'ethers'
-import * as hopMetadata from '@hop-protocol/core/metadata'
 import * as addresses from '@hop-protocol/core/addresses'
 import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
@@ -17,34 +16,28 @@ interface UnwrapSectionProps {
   signer: Signer
   erc20PositionBalance: string
   getHumanErrorMessage: (error: Error) => string
+  isNativeToken: (chainSlug: string, tokenSymbol: string) => boolean
   goToNextSection: () => void
 }
 
 export function UnwrapSection(props: UnwrapSectionProps) {
-  const reactAppNetwork = props.reactAppNetwork
-  const networksMatch = props.networksMatch
-  const checkConnectedNetworkId = props.checkConnectedNetworkId
-  const connectedNetworkId = props.connectedNetworkId
-  const networkSlugToId = props.networkSlugToId
-  const chainSlug = props.chainSlug
-  const tokenSymbol = props.tokenSymbol
-  const signer = props.signer
-  const erc20PositionBalance = props.erc20PositionBalance
-  const getHumanErrorMessage = props.getHumanErrorMessage
-  const goToNextSection = props.goToNextSection
+  const {
+    reactAppNetwork,
+    networksMatch,
+    checkConnectedNetworkId,
+    connectedNetworkId,
+    networkSlugToId,
+    chainSlug,
+    tokenSymbol,
+    signer,
+    erc20PositionBalance,
+    getHumanErrorMessage,
+    isNativeToken,
+    goToNextSection
+  } = props
 
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")
-
-  function isNativeToken(chainSlug: string, tokenSymbol: string): boolean {
-    let adjustedTokenSymbol = tokenSymbol
-
-    if (tokenSymbol === "DAI" && chainSlug === "gnosis") {
-      adjustedTokenSymbol = "XDAI"
-    }
-
-    return adjustedTokenSymbol === (hopMetadata as any)?.[reactAppNetwork]?.chains?.[chainSlug]?.nativeTokenSymbol
-  }
 
   async function unwrapETH(amountToUnwrap: string) {
     const wETHContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken

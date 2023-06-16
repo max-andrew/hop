@@ -10,6 +10,7 @@ interface BridgingStatusSectionProps {
   reactAppNetwork: string
   networkSlugToId: (networkSlug: string) => number
   chainSlug: string
+  tokenSymbol: string
   provider: ethers.providers.Provider | undefined
   bridgeTxHash: string
   setNumberOfBridgedTokensReceived: (numberOfBridgedTokensReceived: string) => void
@@ -17,25 +18,32 @@ interface BridgingStatusSectionProps {
   bridgedFromNetworkId: number
   destinationNetworkId: number
   changeNetwork: (newChainId: number) => Promise<boolean>
+  isNativeToken: (chainSlug: string, tokenSymbol: string) => boolean
   goToNextSection: () => void
+  skipNextSection: () => void
   getHumanErrorMessage: (error: Error) => string
   getDeadline: (confirmTimeMinutes: number) => number
 }
 
 export function BridgingStatusSection(props: BridgingStatusSectionProps) {
-  const reactAppNetwork = props.reactAppNetwork
-  const networkSlugToId = props.networkSlugToId
-  const chainSlug = props.chainSlug
-  const provider = props.provider
-  const bridgeTxHash = props.bridgeTxHash
-  const setNumberOfBridgedTokensReceived = props.setNumberOfBridgedTokensReceived
-  const connectedNetworkId = props.connectedNetworkId
-  const bridgedFromNetworkId = props.bridgedFromNetworkId
-  const destinationNetworkId = props.destinationNetworkId
-  const changeNetwork = props.changeNetwork
-  const goToNextSection = props.goToNextSection
-  const getHumanErrorMessage = props.getHumanErrorMessage
-  const getDeadline = props.getDeadline
+  const {
+    reactAppNetwork,
+    networkSlugToId,
+    chainSlug,
+    tokenSymbol,
+    provider,
+    bridgeTxHash,
+    setNumberOfBridgedTokensReceived,
+    connectedNetworkId,
+    bridgedFromNetworkId,
+    destinationNetworkId,
+    changeNetwork,
+    isNativeToken,
+    goToNextSection,
+    skipNextSection,
+    getHumanErrorMessage,
+    getDeadline
+  } = props
 
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")
@@ -110,7 +118,14 @@ export function BridgingStatusSection(props: BridgingStatusSectionProps) {
       await setBridgedTokenData(bondTxHash)
       setIsTransacting(false)
       setStatusMessage("Successfully got bridge data")
-      goToNextSection()
+
+      if (isNativeToken(chainSlug, tokenSymbol)) {
+        console.log("Wrap required")
+        goToNextSection()
+      } else {
+        console.log("Wrap not required")
+        skipNextSection()
+      }
     } catch (error) {
       console.error(error)
       setStatusMessage("Unable to confirm successful bridge transaction")

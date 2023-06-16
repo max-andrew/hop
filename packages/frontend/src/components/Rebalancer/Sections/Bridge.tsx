@@ -146,16 +146,19 @@ export function BridgeSection(props: BridgeSectionProps) {
     try {
       setStatusMessage("Sending tokens to bridge")
 
-      console.log(
-        destinationNetworkId,
-        recipient,
-        amount,
-        bonderFee,
-        amountOutMin,
-        deadline,
-        destinationAmountOutMin,
-        destinationDeadline,
-        value
+      console.dir(
+        "Bridging with parameters:",
+        {
+          destinationNetworkId,
+          recipient,
+          amount,
+          bonderFee,
+          amountOutMin,
+          deadline,
+          destinationAmountOutMin,
+          destinationDeadline,
+          value
+        }
       )
 
       const gasLimit = await l2AmmWrapperContract.estimateGas.swapAndSend(
@@ -171,8 +174,6 @@ export function BridgeSection(props: BridgeSectionProps) {
           value: value
         }
       )
-
-      console.log("gasLimit", gasLimit)
 
       const bridgeTx = await l2AmmWrapperContract.swapAndSend(
         destinationNetworkId,

@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { ethers } from 'ethers'
-import * as hopMetadata from '@hop-protocol/core/metadata'
 import * as addresses from '@hop-protocol/core/addresses'
 import { Addresses } from '@hop-protocol/core/addresses'
 import Button from 'src/components/buttons/Button'
@@ -17,35 +16,29 @@ interface WrapSectionProps {
   tokenSymbol: string
   numberOfBridgedTokensReceived: string
   signer: ethers.Signer
+  isNativeToken: (chainSlug: string, tokenSymbol: string) => boolean
   goToNextSection: () => void
   getHumanErrorMessage: (errorMessage: Error) => string
 }
 
 export function WrapSection(props: WrapSectionProps) {
-  const reactAppNetwork = props.reactAppNetwork
-  const networksMatch = props.networksMatch
-  const checkConnectedNetworkId = props.checkConnectedNetworkId
-  const connectedNetworkId = props.connectedNetworkId
-  const networkSlugToId = props.networkSlugToId
-  const chainSlug = props.chainSlug
-  const tokenSymbol = props.tokenSymbol
-  const numberOfBridgedTokensReceived = props.numberOfBridgedTokensReceived
-  const signer = props.signer
-  const goToNextSection = props.goToNextSection
-  const getHumanErrorMessage = props.getHumanErrorMessage
+  const {
+    reactAppNetwork,
+    networksMatch,
+    checkConnectedNetworkId,
+    connectedNetworkId,
+    networkSlugToId,
+    chainSlug,
+    tokenSymbol,
+    numberOfBridgedTokensReceived,
+    signer,
+    isNativeToken,
+    goToNextSection,
+    getHumanErrorMessage
+  } = props
 
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")
-
-  function isNativeToken(chainSlug: string, tokenSymbol: string): boolean {
-    let adjustedTokenSymbol = tokenSymbol
-
-    if (tokenSymbol === "DAI" && chainSlug === "gnosis") {
-      adjustedTokenSymbol = "XDAI"
-    }
-
-    return adjustedTokenSymbol === (hopMetadata as any)?.[reactAppNetwork]?.chains?.[chainSlug]?.nativeTokenSymbol
-  }
 
   async function wrapETH(amountToWrap: string) {
     const wETHContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken

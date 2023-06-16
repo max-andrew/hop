@@ -31,7 +31,9 @@ interface UnstakeWithdrawSectionProps {
   setHTokenPositionBalance: (hTokenPositionBalance: string) => void
   setShowRebalancerModal: (showRebalancerModal: boolean) => void
   getHumanErrorMessage: (error: Error) => string
+  isNativeToken: (chainSlug: string, tokenSymbol: string) => boolean
   goToNextSection: () => void
+  skipNextSection: () => void
 }
 
 export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
@@ -52,7 +54,9 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
     setHTokenPositionBalance,
     setShowRebalancerModal,
     getHumanErrorMessage,
-    goToNextSection
+    isNativeToken,
+    goToNextSection,
+    skipNextSection
   } = props
 
   const stakingContractAddress = (hopStakingRewardsContracts as any)?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
@@ -210,8 +214,13 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
                 numberOfHTokensWithdrawn = removeLiquidityTxReceipt.logs[1].data.toString()
               }
 
-              console.log("Successfully withdrew", numberOfERC20TokensWithdrawn, "canonical tokens")
-              console.log("Successfully withdrew", numberOfHTokensWithdrawn, "hTokens")
+              if (numberOfERC20TokensWithdrawn > "0") {
+                console.log("Successfully withdrew", numberOfERC20TokensWithdrawn, "canonical tokens")
+              }
+
+              if (numberOfHTokensWithdrawn > "0") {
+                console.log("Successfully withdrew", numberOfHTokensWithdrawn, "hTokens")
+              }
 
               setStatusMessage("Successfully withdrew tokens")
               setIsTransacting(false)
@@ -219,7 +228,13 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
               setERC20PositionBalance(numberOfERC20TokensWithdrawn)
               setHTokenPositionBalance(numberOfHTokensWithdrawn)
 
-              goToNextSection()
+              if (isNativeToken(chainSlug, tokenSymbol)) {
+                console.log("Unwrap required")
+                goToNextSection()
+              } else {
+                console.log("Unwrap not required")
+                skipNextSection()
+              }
             } else {
               setIsTransacting(false)
               setStatusMessage("Error: no tokens to withdraw")
