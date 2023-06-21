@@ -150,6 +150,7 @@ export function PoolDetails () {
   //   APR is undefined, 
   //   the user does not have tokens deposited
   function shouldShowAlert(): boolean {
+    return true
     try {
       if (typeof sortedChainsWithAPRData[0] === "undefined") {
         return false

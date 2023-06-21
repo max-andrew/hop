@@ -40,7 +40,7 @@ export function RebalancerModal(props: RebalancerModalProps) {
   const { selectedNetwork, selectSourceNetwork } = useSelectedNetwork({ l2Only: true })
   const chainSlug: string = selectedNetwork?.slug ?? ""
 
-  const defaultRewardTokenSymbol = stakingRewards?.[0]?.rewardTokenSymbol !== "undefined" ? stakingRewards[0].rewardTokenSymbol : "HOP"
+  const defaultRewardTokenSymbol = "HOP"
   const [selectedRewardTokenSymbol, setSelectedRewardTokenSymbol] = useState<string>(defaultRewardTokenSymbol)
   const [destinationNetworkId, setDestinationNetworkId] = useState<number>(chainSlug === "optimism" ? networkSlugToId("arbitrum") : networkSlugToId("optimism"))
   
