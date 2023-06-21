@@ -21,7 +21,6 @@ interface BridgeSectionProps {
   chainSlug: string
   tokenSymbol: string
   signer: Signer
-  getTokensAreStaked: (stakingContract: Contract) => Promise<boolean | undefined>
   address: Address | undefined
   erc20PositionBalance: string
   approveToken: (tokenAddress: string, spenderAddress: string, amount: string) => Promise<TransactionResponse | undefined>
@@ -43,7 +42,6 @@ export function BridgeSection(props: BridgeSectionProps) {
     chainSlug,
     tokenSymbol,
     signer,
-    getTokensAreStaked,
     address,
     erc20PositionBalance,
     approveToken,

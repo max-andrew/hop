@@ -157,19 +157,19 @@ export function PoolDetails () {
 
       // return false if APR is undefined
       if (typeof sortedChainsWithAPRData[0][1] === "undefined") {
-        // console.log("APR is 0 or undefined")
+        console.log("APR is 0 or undefined")
         return false
       }
 
       // return false if the user isn't in the pool
       if (!hasBalance) {
-        // console.log("User isn't in pool")
+        console.log("User isn't in pool")
         return false
       }
 
       // return false if highest APR network
       if (sortedChainsWithAPRData[0][0] === selectedNetwork?.slug) {
-        // console.log("Network has highest APR")
+        console.log("Network has highest APR")
         return false
       }
     } catch (error) {
@@ -178,15 +178,11 @@ export function PoolDetails () {
     }
 
     return true
-
-    function sortTuplesDescending(tupleArray: [string, number, string][]): [string, number, string][] {
-      return tupleArray.sort((a, b) => b[1] - a[1])
-    }
   }
 
   return (
     <>
-      <RebalancerModal showRebalancerModal={showRebalancerModal} setShowRebalancerModal={setShowRebalancerModal} sortedChainsWithAPRData={sortedChainsWithAPRData} />
+      <RebalancerModal showRebalancerModal={showRebalancerModal} setShowRebalancerModal={setShowRebalancerModal} sortedChainsWithAPRData={sortedChainsWithAPRData} stakingRewards={stakingRewards} />
       <Box maxWidth={"900px"} m={"0 auto"}>
         <Link to={'/pools'} className={styles.backLink}>
           <Box mb={4} display="flex" alignItems="center">

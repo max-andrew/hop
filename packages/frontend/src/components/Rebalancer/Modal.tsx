@@ -24,11 +24,12 @@ import { StakeSection } from 'src/components/Rebalancer/Sections/Stake'
 interface RebalancerModalProps {
   showRebalancerModal: boolean
   setShowRebalancerModal: (showRebalancerModal: boolean) => void
-  sortedChainsWithAPRData: [string, number, string][]
+  sortedChainsWithAPRData: [chainSlug: string, totalApr: number, poolApr: number][]
+  stakingRewards: { [key: string]: string }[]
 }
 
 export function RebalancerModal(props: RebalancerModalProps) {
-  const { showRebalancerModal, setShowRebalancerModal, sortedChainsWithAPRData } = props
+  const { showRebalancerModal, setShowRebalancerModal, sortedChainsWithAPRData, stakingRewards } = props
 
   const { address, provider, onboard, connectedNetworkId, checkConnectedNetworkId } = useWeb3Context()
   const signer = provider?.getSigner()
@@ -39,7 +40,10 @@ export function RebalancerModal(props: RebalancerModalProps) {
   const { selectedNetwork, selectSourceNetwork } = useSelectedNetwork({ l2Only: true })
   const chainSlug: string = selectedNetwork?.slug ?? ""
 
+  const defaultRewardTokenSymbol = stakingRewards?.[0]?.rewardTokenSymbol !== "undefined" ? stakingRewards[0].rewardTokenSymbol : "HOP"
+  const [selectedRewardTokenSymbol, setSelectedRewardTokenSymbol] = useState<string>(defaultRewardTokenSymbol)
   const [destinationNetworkId, setDestinationNetworkId] = useState<number>(chainSlug === "optimism" ? networkSlugToId("arbitrum") : networkSlugToId("optimism"))
+  
   const [erc20PositionBalance, setERC20PositionBalance] = useState<string>("")
   const [hTokenPositionBalance, setHTokenPositionBalance] = useState<string>("")
   const [bridgeTxHash, setBridgeTxHash] = useState<string>("")
@@ -77,25 +81,6 @@ export function RebalancerModal(props: RebalancerModalProps) {
     } catch (error) {
       console.error(error)
       return false
-    }
-  }
-
-  async function getTokensAreStaked(stakingContract: Contract): Promise<boolean | undefined> {
-    // check if any tokens are staked
-    try {
-      let stakedBalance: string = await stakingContract.balanceOf(address?.address)
-      stakedBalance = stakedBalance.toString()
-
-      if (stakedBalance === "0") {
-        console.log("No tokens staked, no unstake necessary")
-        return false
-      } else {
-        console.log("Staked token balance:", stakedBalance)
-        return true
-      }
-    } catch (error) {
-      console.error(error)
-      return undefined
     }
   }
 
@@ -156,18 +141,21 @@ export function RebalancerModal(props: RebalancerModalProps) {
   const rebalanceSections = !signer
   ? [<Typography variant="h4">Error finding wallet</Typography>]
   : [
-    <NetworkSelectionSection goToNextSection={() => setCurrentStep(currentStep + 1)} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} setBridgedFromNetworkId={setBridgedFromNetworkId} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} sortedChainsWithAPRData={sortedChainsWithAPRData} selectedBridge={selectedBridge} />,
-    <UnstakeWithdrawSection goToNextSection={() => setCurrentStep(currentStep + 1)} skipNextSection={() => setCurrentStep(currentStep + 2)} reactAppNetwork={reactAppNetwork} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} setERC20PositionBalance={setERC20PositionBalance} setHTokenPositionBalance={setHTokenPositionBalance} setShowRebalancerModal={setShowRebalancerModal} getDeadline={getDeadline} approveToken={approveToken} isNativeToken={isNativeToken} />,
+    <NetworkSelectionSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} tokenSymbol={tokenSymbol} setBridgedFromNetworkId={setBridgedFromNetworkId} destinationNetworkId={destinationNetworkId} setDestinationNetwork={setDestinationNetwork} sortedChainsWithAPRData={sortedChainsWithAPRData} selectedBridge={selectedBridge} selectedRewardTokenSymbol={selectedRewardTokenSymbol} setSelectedRewardTokenSymbol={setSelectedRewardTokenSymbol} defaultRewardTokenSymbol={defaultRewardTokenSymbol} />,
+    <UnstakeWithdrawSection goToNextSection={() => setCurrentStep(currentStep + 1)} skipNextSection={() => setCurrentStep(currentStep + 2)} reactAppNetwork={reactAppNetwork} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} address={address} getHumanErrorMessage={getHumanErrorMessage} setERC20PositionBalance={setERC20PositionBalance} setHTokenPositionBalance={setHTokenPositionBalance} setShowRebalancerModal={setShowRebalancerModal} getDeadline={getDeadline} approveToken={approveToken} isNativeToken={isNativeToken} />,
     <UnwrapSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} erc20PositionBalance={erc20PositionBalance} getHumanErrorMessage={getHumanErrorMessage} isNativeToken={isNativeToken} />,
-    <BridgeSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} tokenSymbol={tokenSymbol} destinationNetworkId={destinationNetworkId} signer={signer} getTokensAreStaked={getTokensAreStaked} address={address} getHumanErrorMessage={getHumanErrorMessage} erc20PositionBalance={erc20PositionBalance} setBridgeTxHash={setBridgeTxHash} getDeadline={getDeadline} approveToken={approveToken} selectedBridge={selectedBridge} />,
+    <BridgeSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} tokenSymbol={tokenSymbol} destinationNetworkId={destinationNetworkId} signer={signer} address={address} getHumanErrorMessage={getHumanErrorMessage} erc20PositionBalance={erc20PositionBalance} setBridgeTxHash={setBridgeTxHash} getDeadline={getDeadline} approveToken={approveToken} selectedBridge={selectedBridge} />,
     <BridgingStatusSection goToNextSection={() => setCurrentStep(currentStep + 1)} skipNextSection={() => setCurrentStep(currentStep + 2)} reactAppNetwork={reactAppNetwork} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} tokenSymbol={tokenSymbol} provider={provider} bridgedFromNetworkId={bridgedFromNetworkId} destinationNetworkId={destinationNetworkId} changeNetwork={changeNetwork} bridgeTxHash={bridgeTxHash} setNumberOfBridgedTokensReceived={setNumberOfBridgedTokensReceived} getHumanErrorMessage={getHumanErrorMessage} getDeadline={getDeadline} isNativeToken={isNativeToken} />,
     <WrapSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} tokenSymbol={tokenSymbol} numberOfBridgedTokensReceived={numberOfBridgedTokensReceived} signer={signer} getHumanErrorMessage={getHumanErrorMessage} isNativeToken={isNativeToken} />,
     <DepositSection goToNextSection={() => setCurrentStep(currentStep + 1)} reactAppNetwork={reactAppNetwork} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} tokenSymbol={tokenSymbol} numberOfBridgedTokensReceived={numberOfBridgedTokensReceived} signer={signer} approveToken={approveToken} getDeadline={getDeadline} getHumanErrorMessage={getHumanErrorMessage} />,
-    <StakeSection goToNextSection={() => setCurrentStep(0)} close={() => setShowRebalancerModal(false)} reactAppNetwork={reactAppNetwork} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} address={address} getHumanErrorMessage={getHumanErrorMessage} approveToken={approveToken} />
+    <StakeSection goToNextSection={() => setCurrentStep(0)} close={() => setShowRebalancerModal(false)} reactAppNetwork={reactAppNetwork} networksMatch={networksMatch} checkConnectedNetworkId={checkConnectedNetworkId} connectedNetworkId={connectedNetworkId} networkSlugToId={networkSlugToId} chainSlug={chainSlug} tokenSymbol={tokenSymbol} signer={signer} address={address} getHumanErrorMessage={getHumanErrorMessage} approveToken={approveToken} selectedRewardTokenSymbol={selectedRewardTokenSymbol} />
   ]
 
   return showRebalancerModal
-    ? <Modal onClose={() => setShowRebalancerModal(false)}>
+    ? <Modal onClose={() => {
+        setCurrentStep(0)
+        setShowRebalancerModal(false)
+      }}>
         { rebalanceSections[currentStep] }
         <Footer currentStep={currentStep} totalSteps={rebalanceSections.length} />
       </Modal>

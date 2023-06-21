@@ -89,7 +89,7 @@ type PoolsContextProps = {
   setToken0Amount: (value: string) => void
   setToken1Amount: (value: string) => void
   setWarning: (warning?: string) => void
-  sortedChainsWithAPRData: [string, number, string][]
+  sortedChainsWithAPRData: [string, number, number][]
   token0Amount: string
   token0Balance: number
   token0BalanceBn: BigNumber
@@ -1143,7 +1143,7 @@ const PoolsProvider: FC = ({ children }) => {
   const token0BalanceBn = canonicalBalance ?? BigNumber.from(0)
   const token1BalanceBn = hopBalance ?? BigNumber.from(0)
 
-  const [sortedChainsWithAPRData, setSortedChainsWithAPRData] = useState<[string, number, string][]>([])
+  const [sortedChainsWithAPRData, setSortedChainsWithAPRData] = useState<[string, number, number][]>([])
   useEffect(() => { setSortedChainsWithAPRData(getSortedChainsWithAPRData(poolStats)) }, [poolStats])
 
   function getSortedChainsWithAPRData(poolStats) {
@@ -1151,17 +1151,17 @@ const PoolsProvider: FC = ({ children }) => {
       return []
     }
 
-    const chainsWithAPRData: [string, number, string][] = []
+    const chainsWithAPRData: [string, number, number][] = []
     const chainNames = Object.keys(poolStats)
     for (const chain of chainNames) {
       if (poolStats && typeof poolStats[chain][tokenSymbol] !== "undefined") {
-        chainsWithAPRData.push([chain, poolStats[chain][tokenSymbol].totalApr, poolStats[chain][tokenSymbol].totalAprFormatted])
+        chainsWithAPRData.push([chain, poolStats[chain][tokenSymbol].totalApr, poolStats[chain][tokenSymbol].apr])
       }
     }
 
     return sortTuplesDescending(chainsWithAPRData)
 
-    function sortTuplesDescending(tupleArray: [string, number, string][]): [string, number, string][] {
+    function sortTuplesDescending(tupleArray: [string, number, number][]): [string, number, number][] {
       return tupleArray.sort((a, b) => b[1] - a[1])
     }
   }

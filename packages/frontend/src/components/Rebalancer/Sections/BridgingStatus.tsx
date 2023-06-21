@@ -73,12 +73,23 @@ export function BridgingStatusSection(props: BridgingStatusSectionProps) {
   }
 
   async function checkBridgeStatusAndGetBondHash() {
+    const pollingIntervalInSeconds = 10
+
     const bridgeStatusURL: string = `https://api.hop.exchange/v1/transfer-status?transactionHash=${bridgeTxHash}&network=${reactAppNetwork}`
 
     console.log(bridgeStatusURL)
 
-    const response = await fetch(bridgeStatusURL)
-    const data = await response.json()
+    const endpointDeadline = getDeadline(2)
+
+    // poll the API endpoint for a couple minutes before determining if the URL is valid
+    let data
+    while (getDeadline(0) < endpointDeadline) {
+      const response = await fetch(bridgeStatusURL)
+      data = await response.json()
+      if (typeof data.bonded !== "undefined") {
+        break
+      }
+    }
 
     if (typeof data.error !== "undefined") {
       console.log("Error checking bridge status")
@@ -91,10 +102,9 @@ export function BridgingStatusSection(props: BridgingStatusSectionProps) {
     }
 
     console.log(`Setting deadline for ${waitInMinutes} minutes`)
-    const deadline = getDeadline(waitInMinutes)
-    const pollingIntervalInSeconds = 10
+    const bridgeTransactionDeadline = getDeadline(waitInMinutes)
 
-    while (getDeadline(0) < deadline) {
+    while (getDeadline(0) < bridgeTransactionDeadline) {
       const response = await fetch(bridgeStatusURL)
       const data = await response.json()
 

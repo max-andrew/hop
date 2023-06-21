@@ -3,7 +3,7 @@ import { ethers, Signer } from 'ethers'
 import { TransactionResponse } from '@ethersproject/abstract-provider'
 import * as addresses from '@hop-protocol/core/addresses'
 import Address from 'src/models/Address'
-import { hopStakingRewardsContracts } from 'src/config/addresses'
+import { hopStakingRewardsContracts, stakingRewardsContracts } from 'src/config/addresses'
 import { stakingRewardsAbi } from '@hop-protocol/core/abi'
 import Button from 'src/components/buttons/Button'
 import { SectionHeader } from 'src/components/Rebalancer/Sections/Subsections/Header'
@@ -21,31 +21,35 @@ interface StakeSectionProps {
   address: Address | undefined
   approveToken: (tokenAddress: string, spenderAddress: string, amount: string) => Promise<TransactionResponse | undefined>
   getHumanErrorMessage: (error: Error) => string
-  close: () => void
+  selectedRewardTokenSymbol: string
   goToNextSection: () => void
+  close: () => void
 }
 
 export function StakeSection(props: StakeSectionProps) {
-  const reactAppNetwork = props.reactAppNetwork
-  const networksMatch = props.networksMatch
-  const checkConnectedNetworkId = props.checkConnectedNetworkId
-  const connectedNetworkId = props.connectedNetworkId
-  const networkSlugToId = props.networkSlugToId
-  const chainSlug = props.chainSlug
-  const tokenSymbol = props.tokenSymbol
-  const signer = props.signer
-  const address = props.address
-  const getHumanErrorMessage = props.getHumanErrorMessage
-  const approveToken = props.approveToken
-  const goToNextSection = props.goToNextSection
-  const close = props.close
+  const {
+    reactAppNetwork,
+    networksMatch,
+    checkConnectedNetworkId,
+    connectedNetworkId,
+    networkSlugToId,
+    chainSlug,
+    tokenSymbol,
+    signer,
+    address,
+    getHumanErrorMessage,
+    approveToken,
+    selectedRewardTokenSymbol,
+    goToNextSection,
+    close
+  } = props
 
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")
 
   async function stake() {
     const lpTokenContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2SaddleLpToken
-    const stakingContractAddress = (hopStakingRewardsContracts as any)?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
+    const stakingContractAddress = selectedRewardTokenSymbol === "HOP" ? (hopStakingRewardsContracts as any)?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol] : (stakingRewardsContracts as any)?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
 
     const balanceOfAbi = ["function balanceOf(address owner) view returns (uint256)"]
     const lpTokenContract = new ethers.Contract(lpTokenContractAddress, balanceOfAbi, signer)

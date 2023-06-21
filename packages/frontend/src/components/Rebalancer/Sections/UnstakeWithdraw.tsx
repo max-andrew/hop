@@ -6,7 +6,7 @@ import * as addresses from '@hop-protocol/core/addresses'
 import * as metadata from '@hop-protocol/core/metadata'
 import Address from 'src/models/Address'
 
-import { hopStakingRewardsContracts } from 'src/config/addresses'
+import { stakingRewardsContracts, stakingRewardTokens, hopStakingRewardsContracts } from 'src/config/addresses'
 import { stakingRewardsAbi } from '@hop-protocol/core/abi'
 import saddleSwapAbi from '@hop-protocol/core/abi/generated/Swap.json'
 
@@ -23,7 +23,6 @@ interface UnstakeWithdrawSectionProps {
   chainSlug: string
   tokenSymbol: string
   signer: Signer
-  getTokensAreStaked: (stakingContract: Contract) => Promise<boolean | undefined>
   address: Address | undefined
   approveToken: (tokenAddress: string, spenderAddress: string, amount: string) => Promise<TransactionResponse | undefined>
   getDeadline: (confirmTimeMinutes: number) => number
@@ -46,7 +45,6 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
     chainSlug,
     tokenSymbol,
     signer,
-    getTokensAreStaked,
     address,
     approveToken,
     getDeadline,
@@ -59,42 +57,56 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
     skipNextSection
   } = props
 
-  const stakingContractAddress = (hopStakingRewardsContracts as any)?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
-  const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
-
   const [tokensAreStaked, setTokensAreStaked] = useState<boolean>(true)
+  const [stakingContractAddress, setStakingContractAddress] = useState<string>("")
 
   useEffect(() => {
-    const stakingContractAddress = (hopStakingRewardsContracts as any)?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
-    const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
-    
-    async function updateStakeStatus(setTokensAreStaked: (tokensAreStaked: boolean) => void) {
+    (async () => {
       try {
-        getTokensAreStaked(stakingContract)
-          .then(response => {
-            if (typeof response !== "undefined") {
-              setTokensAreStaked(response)
-            }
-          })
+        // get the amount staked of each possible rewards token
+        let hopStakedBalance: string = ""
+        const hopStakingContractAddress = (hopStakingRewardsContracts as any)?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
+        if (typeof hopStakingContractAddress !== "undefined") {
+          const hopStakingContract = new ethers.Contract(hopStakingContractAddress, stakingRewardsAbi, signer)
+          hopStakedBalance = await hopStakingContract.balanceOf(address?.address)
+          hopStakedBalance = hopStakedBalance.toString()
+        }
+
+        let alternateStakedBalance: string = ""
+        const alternateStakingContractAddress = (stakingRewardsContracts as any)?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
+        if (typeof alternateStakingContractAddress !== "undefined") {
+          const alternateStakingContract = new ethers.Contract(alternateStakingContractAddress, stakingRewardsAbi, signer)
+          alternateStakedBalance = await alternateStakingContract.balanceOf(address?.address)
+          alternateStakedBalance = alternateStakedBalance.toString()
+        }
+        
+        if (hopStakedBalance > "0") {
+          console.log("Hop staked token balance:", hopStakedBalance)
+          setTokensAreStaked(true)
+          setStakingContractAddress(hopStakingContractAddress)
+        } else if (alternateStakedBalance > "0") {
+          console.log("Alternate staked token balance:", alternateStakedBalance)
+          setTokensAreStaked(true)
+          setStakingContractAddress(alternateStakingContractAddress)
+        } else {
+          console.error("Error finding staked balance")
+          setTokensAreStaked(false)
+        }
       } catch (error) {
         console.error(error)
       }
-    }
-
-    updateStakeStatus(setTokensAreStaked)
+    })()
   }, [])
 
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")
 
   async function unstake() {
-    const stakingContractAddress = (hopStakingRewardsContracts as any)?.[reactAppNetwork]?.[chainSlug]?.[tokenSymbol]
-    const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
-
-    if (tokensAreStaked) {
-      // unstake LP tokens
+    if (tokensAreStaked && stakingContractAddress !== "") {
       setStatusMessage("Unstaking tokens")
       try {
+        const stakingContract = new ethers.Contract(stakingContractAddress, stakingRewardsAbi, signer)
+
         const gasLimit = await stakingContract.estimateGas.exit()
         const stakeTx = await stakingContract.exit({ gasLimit: gasLimit })
         
