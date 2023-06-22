@@ -39,43 +39,24 @@ export function UnwrapSection(props: UnwrapSectionProps) {
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")
 
-  async function unwrapETH(amountToUnwrap: string) {
-    const wETHContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-    const wethAbi = ["function withdraw(uint256 _amount) external returns (bool)"]
-    const wethContract = new ethers.Contract(wETHContractAddress, wethAbi, signer)
-    const gasLimit = await wethContract.estimateGas.withdraw(amountToUnwrap)
+  async function unwrap(amountToUnwrap: string) {
+    const contractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
+    const abi = ["function withdraw(uint256 _amount) external returns (bool)"]
+    const contract = new ethers.Contract(contractAddress, abi, signer)
+    const gasLimit = await contract.estimateGas.withdraw(amountToUnwrap)
 
-    return await wethContract.withdraw(amountToUnwrap, { gasLimit: gasLimit })
-  }
-
-  async function unwrapDAI(amountToUnwrap: string) {
-    const wDAIContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-    const wDAIAbi = ["function withdraw(uint256 _amount) external returns (bool)"]
-    const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
-    const gasLimit = await wDAIContract.estimateGas.withdraw(amountToUnwrap)
-
-    return wDAIContract.withdraw(amountToUnwrap, { gasLimit: gasLimit })
+    return await contract.withdraw(amountToUnwrap, { gasLimit: gasLimit })
   }
 
   async function unwrapIfNativeToken() {
     if (isNativeToken(chainSlug, tokenSymbol)) {
       try {
-        let unwrapTx
-        if (tokenSymbol === "ETH") {
-          unwrapTx = await unwrapETH(erc20PositionBalance)
-        } else if (tokenSymbol === "DAI") {
-          unwrapTx = await unwrapDAI(erc20PositionBalance)
-        } else {
-          console.log("Could not identify token to unwrap")
-          setStatusMessage("Error unwrapping token")
-          setIsTransacting(false)
-          return
-        }
+        const unwrapTx = await unwrap(erc20PositionBalance)
 
         await unwrapTx.wait()
           .then(() => {
-            console.log("Successfully unwrapped ETH")
-            setStatusMessage("Successfully unwrapped ETH")
+            console.log("Successfully unwrapped")
+            setStatusMessage("Successfully unwrapped")
             setIsTransacting(false)
             goToNextSection()
           })

@@ -40,43 +40,24 @@ export function WrapSection(props: WrapSectionProps) {
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
   const [statusMessage, setStatusMessage] = useState<string>("")
 
-  async function wrapETH(amountToWrap: string) {
-    const wETHContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-    const wethAbi = ["function deposit() payable"]
-    const wethContract = new ethers.Contract(wETHContractAddress, wethAbi, signer)
-    const gasLimit = await wethContract.estimateGas.deposit({ value: amountToWrap })
+  async function wrap(amountToWrap: string) {
+    const contractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
+    const abi = ["function deposit() payable"]
+    const contract = new ethers.Contract(contractAddress, abi, signer)
+    const gasLimit = await contract.estimateGas.deposit({ value: amountToWrap })
 
-    return await wethContract.deposit({ value: amountToWrap, gasLimit: gasLimit })
-  }
-
-  async function wrapDAI(amountToWrap: string) {
-    const wDAIContractAddress = (addresses as any)?.[reactAppNetwork]?.bridges?.[tokenSymbol]?.[chainSlug]?.l2CanonicalToken
-    const wDAIAbi = ["function deposit() payable"]
-    const wDAIContract = new ethers.Contract(wDAIContractAddress, wDAIAbi, signer)
-    const gasLimit = await wDAIContract.estimateGas.deposit({ value: amountToWrap })
-
-    return wDAIContract.deposit({ value: amountToWrap, gasLimit: gasLimit })
+    return await contract.deposit({ value: amountToWrap, gasLimit: gasLimit })
   }
 
   async function wrapIfNativeToken() {
     if (isNativeToken(chainSlug, tokenSymbol)) {
       try {
-        let wrapTx
-        if (tokenSymbol === "ETH") {
-          wrapTx = await wrapETH(numberOfBridgedTokensReceived)
-        } else if (tokenSymbol === "DAI") {
-          wrapTx = await wrapDAI(numberOfBridgedTokensReceived)
-        } else {
-          console.log("Could not identify token to wrap")
-          setStatusMessage("Error wrapping token")
-          setIsTransacting(false)
-          return
-        }
+        const wrapTx = await wrap(numberOfBridgedTokensReceived)
 
         await wrapTx.wait()
           .then(() => {
-            console.log("Successfully wrapped ETH")
-            setStatusMessage("Successfully wrapped ETH")
+            console.log("Successfully wrapped")
+            setStatusMessage("Successfully wrapped")
             setIsTransacting(false)
             goToNextSection()
           })
