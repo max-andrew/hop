@@ -195,7 +195,7 @@ export function UnstakeWithdrawSection(props: UnstakeWithdrawSectionProps) {
       if (decimals < 18) {
         minAmountBN = minAmountBN.div(10 ** (18 - decimals))
       }
-      const minAmount: string = minAmountBN.mul(70).div(100).toString()
+      const minAmount: string = reactAppNetwork === "goerli" ? minAmountBN.mul(15).div(100).toString() : minAmountBN.mul(70).div(100).toString()
 
       const deadline = getDeadline(2)
 
